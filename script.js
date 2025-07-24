@@ -2229,3 +2229,10 @@ explanationDiv.style.margin = '1.5rem auto 0 auto';
 explanationDiv.style.maxWidth = '95%';
 explanationDiv.style.textAlign = 'left';
 explanationDiv.style.display = 'none';
+
+// Register service worker for PWA/offline support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js');
+  });
+}
