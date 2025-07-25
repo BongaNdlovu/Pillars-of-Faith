@@ -2367,3 +2367,63 @@ if (deepInsightNextBtn) {
         nextBtn.style.display = 'block';
     };
 }
+
+// --- Firebase Config & Auth ---
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+let currentUser = null;
+
+// --- Leaderboard Modal Logic ---
+const leaderboardModal = document.getElementById('leaderboard-modal');
+const googleSigninBtn = document.getElementById('google-signin-btn');
+const googleSignoutBtn = document.getElementById('google-signout-btn');
+const userInfoDiv = document.getElementById('user-info');
+const optoutCheckbox = document.getElementById('optout-leaderboard');
+const closeLeaderboardBtn = document.getElementById('close-leaderboard-btn');
+
+function showLeaderboardModal() {
+  leaderboardModal.style.display = 'flex';
+  updateUserInfoUI();
+}
+function hideLeaderboardModal() {
+  leaderboardModal.style.display = 'none';
+}
+closeLeaderboardBtn.onclick = hideLeaderboardModal;
+
+// Google Auth logic
+function updateUserInfoUI() {
+  if (currentUser) {
+    userInfoDiv.innerHTML = `<img src="${currentUser.photoURL}" style="width:32px;height:32px;border-radius:50%;vertical-align:middle;margin-right:0.5em;">${currentUser.displayName}`;
+    googleSigninBtn.style.display = 'none';
+    googleSignoutBtn.style.display = 'inline-block';
+  } else {
+    userInfoDiv.innerHTML = '';
+    googleSigninBtn.style.display = 'inline-block';
+    googleSignoutBtn.style.display = 'none';
+  }
+}
+googleSigninBtn.onclick = function() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).then(result => {
+    currentUser = result.user;
+    updateUserInfoUI();
+  });
+};
+googleSignoutBtn.onclick = function() {
+  auth.signOut().then(() => {
+    currentUser = null;
+    updateUserInfoUI();
+  });
+};
+auth.onAuthStateChanged(user => {
+  currentUser = user;
+  updateUserInfoUI();
+});
