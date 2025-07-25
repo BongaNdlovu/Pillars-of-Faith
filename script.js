@@ -1664,7 +1664,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 // Enhanced leaderboard functionality
-                handleLeaderboard();
+                // handleLeaderboard(); // Remove old local leaderboard
+                // Show global leaderboard (score, time)
+                showLeaderboardAfterGame(playerScore, Math.round(gameElapsedTime || 0));
                 
             } else {
                 // Enhanced team mode end screen
@@ -2371,13 +2373,17 @@ if (deepInsightNextBtn) {
 }
 
 // --- Firebase Config & Auth ---
+// Firebase project: "Pillars Of Faith" (pillars-of-faith)
+// Project number: 361998196975
+// TODO: You need to create a Web App in your Firebase project to get the API key and other credentials
+// Go to https://console.firebase.google.com/ → Your Project → Project Settings → General → Your Apps → Add Web App
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "YOUR_API_KEY", // ← You need to create a Web App to get this
+  authDomain: "pillars-of-faith.firebaseapp.com", // ← This should be correct based on your project ID
+  projectId: "pillars-of-faith", // ← Your actual project ID
+  storageBucket: "pillars-of-faith.appspot.com", // ← This should be correct based on your project ID
+  messagingSenderId: "361998196975", // ← Your project number
+  appId: "YOUR_APP_ID" // ← You need to create a Web App to get this
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
@@ -2417,12 +2423,17 @@ googleSigninBtn.onclick = function() {
   auth.signInWithPopup(provider).then(result => {
     currentUser = result.user;
     updateUserInfoUI();
+  }).catch(error => {
+    console.error('Error signing in with Google:', error);
+    alert('Failed to sign in with Google. Please try again.');
   });
 };
 googleSignoutBtn.onclick = function() {
   auth.signOut().then(() => {
     currentUser = null;
     updateUserInfoUI();
+  }).catch(error => {
+    console.error('Error signing out:', error);
   });
 };
 auth.onAuthStateChanged(user => {
@@ -2455,8 +2466,13 @@ function submitToLeaderboard(score, time) {
   // Only allow one entry per user per session (or update if better)
   db.collection('leaderboard').doc(currentUser.uid).get().then(doc => {
     if (!doc.exists || (score > doc.data().score) || (score === doc.data().score && time < doc.data().time)) {
-      db.collection('leaderboard').doc(currentUser.uid).set(entry);
+      db.collection('leaderboard').doc(currentUser.uid).set(entry)
+        .catch(error => {
+          console.error('Error submitting score:', error);
+        });
     }
+  }).catch(error => {
+    console.error('Error checking existing score:', error);
   });
 }
 
@@ -2489,6 +2505,10 @@ function fetchAndDisplayLeaderboard() {
       if (!foundCurrent && currentUser) {
         // Optionally, fetch and show current user's rank if not in Top 10
       }
+    })
+    .catch(error => {
+      console.error('Error fetching leaderboard:', error);
+      leaderboardTableBody.innerHTML = '<tr><td colspan="5" style="color: #ff6b6b;">Unable to load leaderboard. Please check your Firebase configuration.</td></tr>';
     });
 }
 
@@ -2505,5 +2525,29 @@ function showLeaderboardAfterGame(score, time) {
   fetchAndDisplayLeaderboard();
   showLeaderboardModal();
 }
+
+// Test Firebase connection (for debugging)
+function testFirebaseConnection() {
+  console.log('Testing Firebase connection...');
+  if (typeof firebase === 'undefined') {
+    console.error('Firebase is not loaded!');
+    return;
+  }
+  
+  // Test Firestore connection
+  db.collection('test').doc('test').get()
+    .then(() => {
+      console.log('✅ Firebase connection successful!');
+    })
+    .catch(error => {
+      console.error('❌ Firebase connection failed:', error);
+      if (error.code === 'permission-denied') {
+        console.log('💡 This might be due to Firestore security rules. Check the FIREBASE_SETUP.md file.');
+      }
+    });
+}
+
+// Uncomment the line below to test Firebase connection when the page loads
+// testFirebaseConnection();
 
 // Optionally, call showLeaderboardAfterGame(finalScore, finalTime) at game end
