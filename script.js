@@ -282,6 +282,72 @@ function shuffle(array) {
     return array;
 }
 
+/**
+ * Sorts questions by difficulty (hard first, then medium, then easy)
+ * Within each difficulty level, questions are shuffled randomly
+ * @param {Array} questions - Array of question objects
+ * @returns {Array} - Sorted array with hard questions first
+ */
+function sortQuestionsByDifficulty(questions) {
+    // Define difficulty weights (higher = harder)
+    const difficultyWeights = {
+        'hard': 3,
+        'medium': 2,
+        'easy': 1
+    };
+    
+    // Sort by difficulty weight (descending) and then shuffle within each difficulty
+    const sortedQuestions = [...questions].sort((a, b) => {
+        const weightA = difficultyWeights[a.difficulty] || 1;
+        const weightB = difficultyWeights[b.difficulty] || 1;
+        return weightB - weightA; // Hard questions first
+    });
+    
+    // Group by difficulty and shuffle within each group
+    const hardQuestions = shuffle(sortedQuestions.filter(q => q.difficulty === 'hard'));
+    const mediumQuestions = shuffle(sortedQuestions.filter(q => q.difficulty === 'medium'));
+    const easyQuestions = shuffle(sortedQuestions.filter(q => q.difficulty === 'easy'));
+    
+    // Combine with hard questions first
+    return [...hardQuestions, ...mediumQuestions, ...easyQuestions];
+}
+
+/**
+ * Selects questions with difficulty-based prioritization
+ * For shorter games (10, 20 questions): Prioritize harder questions
+ * For longer games (50, 100 questions): Mix harder questions throughout but start with hard
+ * @param {Array} availableQuestions - All available questions
+ * @param {number} numQuestions - Number of questions to select
+ * @returns {Array} - Selected questions with difficulty prioritization
+ */
+function selectQuestionsByDifficulty(availableQuestions, numQuestions) {
+    const sortedQuestions = sortQuestionsByDifficulty(availableQuestions);
+    
+    if (numQuestions <= 20) {
+        // For shorter games, take the first N questions (prioritizing hard ones)
+        return sortedQuestions.slice(0, numQuestions);
+    } else {
+        // For longer games, create a more balanced distribution
+        const hardQuestions = sortedQuestions.filter(q => q.difficulty === 'hard');
+        const mediumQuestions = sortedQuestions.filter(q => q.difficulty === 'medium');
+        const easyQuestions = sortedQuestions.filter(q => q.difficulty === 'easy');
+        
+        // Calculate distribution for longer games
+        const hardCount = Math.min(Math.ceil(numQuestions * 0.4), hardQuestions.length); // 40% hard
+        const mediumCount = Math.min(Math.ceil(numQuestions * 0.4), mediumQuestions.length); // 40% medium
+        const easyCount = Math.min(numQuestions - hardCount - mediumCount, easyQuestions.length); // 20% easy
+        
+        // Take questions from each difficulty level
+        const selectedHard = hardQuestions.slice(0, hardCount);
+        const selectedMedium = mediumQuestions.slice(0, mediumCount);
+        const selectedEasy = easyQuestions.slice(0, easyCount);
+        
+        // Combine and shuffle to mix difficulties while keeping hard questions prominent
+        const combined = [...selectedHard, ...selectedMedium, ...selectedEasy];
+        return shuffle(combined).slice(0, numQuestions);
+    }
+}
+
 // --- NEW: Get Time Attack Questions ---
 function getAttackModeQuestions(filteredByCategory, questionsToExclude = [], lenient = false) {
     const excludeIds = new Set(questionsToExclude.map(q => q.id));
@@ -682,9 +748,9 @@ const CATEGORY_ICONS = {
 // Fun facts, Bible verses, and health tips
 const FUN_FACTS = [
     // Bible Verses
-    '“I can do all things through Christ who strengthens me.” — Philippians 4:13',
-    '“Trust in the Lord with all your heart and lean not on your own understanding.” — Proverbs 3:5',
-    '“Beloved, I pray that you may prosper in all things and be in health, just as your soul prospers.” — 3 John 1:2',
+    '"I can do all things through Christ who strengthens me." — Philippians 4:13',
+    '"Trust in the Lord with all your heart and lean not on your own understanding." — Proverbs 3:5',
+    '"Beloved, I pray that you may prosper in all things and be in health, just as your soul prospers." — 3 John 1:2',
     // Health Tips
     '🥗 Health Tip: Drinking enough water each day is crucial for many reasons: to regulate body temperature, keep joints lubricated, and deliver nutrients to cells.',
     '🥦 Health Tip: Eating a variety of colorful fruits and vegetables helps your body get a wide range of nutrients.',
@@ -954,9 +1020,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectedCategory = categoryDropdown.value;
         let availableQuestions;
         if (selectedCategory === 'All') {
-            availableQuestions = shuffle([...gameQuestions]);
+            availableQuestions = [...gameQuestions];
         } else {
-            availableQuestions = shuffle(gameQuestions.filter(q => q.category === selectedCategory));
+            availableQuestions = gameQuestions.filter(q => q.category === selectedCategory);
         }
 
         if (isTimeAttackMode) {
@@ -976,7 +1042,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (gameLengthSelect && !isNaN(parseInt(gameLengthSelect.value, 10))) {
                 numQuestions = parseInt(gameLengthSelect.value, 10);
             }
-            questions = shuffle(availableQuestions).slice(0, numQuestions);
+            
+            // Use difficulty-based question selection instead of random shuffling
+            questions = selectQuestionsByDifficulty(availableQuestions, numQuestions);
+            
+            // Log the difficulty distribution for debugging
+            const difficultyCounts = questions.reduce((acc, q) => {
+                acc[q.difficulty] = (acc[q.difficulty] || 0) + 1;
+                return acc;
+            }, {});
+            console.log(`Selected ${numQuestions} questions with difficulty distribution:`, difficultyCounts);
+            
             gameQuestionCount = numQuestions;
             maxWagerValue = 20;
             currentWager = 5;
@@ -1153,9 +1229,47 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const question = questions[currentQuestionIndex];
-        // Add category icon/badge
+        
+        // Add category icon/badge and difficulty indicator
         const icon = CATEGORY_ICONS[question.category] || '';
-        questionDiv.innerHTML = `<span class='category-badge'>${icon}</span> ${question.question}`;
+        const difficultyEmoji = {
+            'easy': '🟢',
+            'medium': '🟡', 
+            'hard': '🔴'
+        }[question.difficulty] || '⚪';
+        
+        questionDiv.innerHTML = `
+            <span class='category-badge'>${icon}</span>
+            <span class='difficulty-badge' style='background: ${question.difficulty === 'hard' ? '#ff4444' : question.difficulty === 'medium' ? '#ffaa00' : '#44aa44'}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin-left: 8px;'>${difficultyEmoji} ${question.difficulty.toUpperCase()}</span>
+            ${question.question}
+        `;
+        
+        // Add special visual feedback for hard questions
+        if (question.difficulty === 'hard') {
+            questionDiv.style.border = '2px solid #ff4444';
+            questionDiv.style.boxShadow = '0 0 15px rgba(255, 68, 68, 0.3)';
+            questionDiv.style.animation = 'hard-question-pulse 2s ease-in-out';
+            
+            // Add a warning message for hard questions
+            const hardWarning = document.createElement('div');
+            hardWarning.innerHTML = '⚠️ <strong>Challenge Question!</strong> This is a difficult one - think carefully!';
+            hardWarning.style.cssText = `
+                background: rgba(255, 68, 68, 0.1);
+                border: 1px solid #ff4444;
+                border-radius: 8px;
+                padding: 8px 12px;
+                margin: 8px 0;
+                color: #ff4444;
+                font-size: 0.9em;
+                text-align: center;
+                animation: hard-warning-pulse 2s ease-in-out;
+            `;
+            questionDiv.appendChild(hardWarning);
+        } else {
+            questionDiv.style.border = '';
+            questionDiv.style.boxShadow = '';
+            questionDiv.style.animation = '';
+        }
         const shuffledOptions = shuffle(question.options);
         optionsDiv.innerHTML = '';
         optionsDiv.appendChild(createOptionButtons(shuffledOptions, selectAnswer));
@@ -1236,7 +1350,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (correct) {
             playCorrectSound();
             let points = wager * (doublePointsActive ? 2 : 1);
+            
+            // Add bonus points for hard questions
+            if (question.difficulty === 'hard') {
+                points += Math.floor(wager * 0.5); // 50% bonus for hard questions
+                console.log(`Hard question bonus! Base points: ${wager}, Bonus: ${Math.floor(wager * 0.5)}, Total: ${points}`);
+            }
+            
             if (gameMode === 'solo') {
+                const oldScore = playerScore;
                 playerScore += points;
                 currentStreak++;
                 correctAnswers++;
@@ -1245,6 +1367,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     faithTokens++;
                     updateFaithTokens(true);
                 }
+                console.log(`Score updated: ${oldScore} + ${points} = ${playerScore}`);
             } else { // Teams
                 if (currentTeam === 'blue') teamBlueScore += points;
                 else teamBlackScore += points;
@@ -1254,12 +1377,39 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 selectedBtn.style.transform = '';
             }, 300);
+            
+            // Show bonus indicator for hard questions
+            if (question.difficulty === 'hard') {
+                const bonusIndicator = document.createElement('div');
+                bonusIndicator.innerHTML = `🎯 +${Math.floor(wager * 0.5)} BONUS!`;
+                bonusIndicator.style.cssText = `
+                    position: absolute;
+                    top: -30px;
+                    right: 10px;
+                    background: linear-gradient(135deg, #ff4444, #cc3333);
+                    color: white;
+                    padding: 4px 8px;
+                    border-radius: 12px;
+                    font-size: 0.8em;
+                    font-weight: bold;
+                    animation: bonus-pop 1s ease-out;
+                    z-index: 100;
+                `;
+                selectedBtn.style.position = 'relative';
+                selectedBtn.appendChild(bonusIndicator);
+                
+                setTimeout(() => {
+                    bonusIndicator.remove();
+                }, 1000);
+            }
         } else {
             playSound(audioWrong);
             shakeElement(selectedBtn);
             if (gameMode === 'solo') {
+                const oldScore = playerScore;
                 playerScore = Math.max(0, playerScore - wager);
                 currentStreak = 0;
+                console.log(`Score updated: ${oldScore} - ${wager} = ${playerScore}`);
             } else { // Teams
                 if (currentTeam === 'blue') teamBlueScore = Math.max(0, teamBlueScore - wager);
                 else teamBlackScore = Math.max(0, teamBlackScore - wager);
@@ -1550,12 +1700,19 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('results-teams-time').style.display = 'none';
 
         if (isTimeAttackMode) {
-            gameElapsedTime = timeRanOut ? TOTAL_TIME_LIMIT : (Date.now() - gameStartTime) / 1000;
+            // Ensure gameStartTime is valid before calculating elapsed time
+            if (gameStartTime && typeof gameStartTime === 'number') {
+                gameElapsedTime = timeRanOut ? TOTAL_TIME_LIMIT : (Date.now() - gameStartTime) / 1000;
+            } else {
+                gameElapsedTime = timeRanOut ? TOTAL_TIME_LIMIT : 0;
+                console.warn('gameStartTime was null or invalid, using fallback time calculation');
+            }
             const timeTakenStr = `Time Taken: ${formatTime(Math.round(gameElapsedTime))}`;
 
             if (gameMode === 'solo') {
                 resultsSolo.style.display = 'block';
                 resultsSolo.children[0].innerText = `Your Score: ${playerScore}`;
+                console.log(`Time attack mode - Final score displayed: ${playerScore}`);
                 const attempted = timeRanOut ? currentQuestionIndex + 1 : 30;
                 resultsSolo.children[1].innerText = `Correct Answers: ${correctAnswers}/${attempted}`;
                 resultsSolo.children[2].innerText = `Longest Streak: ${longestStreak}`;
@@ -1631,6 +1788,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => {
                     resultsSolo.children[0].innerText = `Your Score: ${playerScore}`;
                     resultsSolo.children[0].classList.add('score-animate-up');
+                    console.log(`Final score displayed: ${playerScore}`);
                 }, 200);
                 
                 setTimeout(() => {
@@ -1666,7 +1824,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Enhanced leaderboard functionality
                 // handleLeaderboard(); // Remove old local leaderboard
                 // Show global leaderboard (score, time)
-                showLeaderboardAfterGame(playerScore, Math.round(gameElapsedTime || 0));
+                // Calculate game elapsed time for normal mode
+                let normalModeTime = 0;
+                if (gameStartTime && typeof gameStartTime === 'number') {
+                    normalModeTime = (Date.now() - gameStartTime) / 1000;
+                } else {
+                    // Fallback: estimate time based on question count and average time per question
+                    normalModeTime = questions.length * 15; // Assume 15 seconds per question average
+                    console.warn('gameStartTime was null, using estimated time for leaderboard');
+                }
+                showLeaderboardAfterGame(playerScore, Math.round(normalModeTime));
                 
             } else {
                 // Enhanced team mode end screen
@@ -2479,21 +2646,34 @@ function formatLeaderboardTime(seconds) {
 // Submit score to leaderboard
 function submitToLeaderboard(score, time) {
   if (!currentUser || optoutCheckbox.checked) return;
+  
+  // Ensure score and time are valid numbers
+  const finalScore = parseInt(score, 10) || 0;
+  const finalTime = parseInt(time, 10) || 0;
+  
+  console.log('Submitting score to leaderboard:', { score: finalScore, time: finalTime, user: currentUser.displayName });
+  
   const entry = {
     uid: currentUser.uid,
     displayName: currentUser.displayName,
     photoURL: currentUser.photoURL,
-    score: score,
-    time: time,
+    score: finalScore,
+    time: finalTime,
     date: firebase.firestore.FieldValue.serverTimestamp()
   };
+  
   // Only allow one entry per user per session (or update if better)
   db.collection('leaderboard').doc(currentUser.uid).get().then(doc => {
-    if (!doc.exists || (score > doc.data().score) || (score === doc.data().score && time < doc.data().time)) {
+    if (!doc.exists || (finalScore > doc.data().score) || (finalScore === doc.data().score && finalTime < doc.data().time)) {
       db.collection('leaderboard').doc(currentUser.uid).set(entry)
+        .then(() => {
+          console.log('✅ Score submitted successfully:', finalScore);
+        })
         .catch(error => {
           console.error('Error submitting score:', error);
         });
+    } else {
+      console.log('Score not submitted - existing score is better or equal');
     }
   }).catch(error => {
     console.error('Error checking existing score:', error);
@@ -2512,22 +2692,68 @@ function fetchAndDisplayLeaderboard() {
     .then(snapshot => {
       leaderboardTableBody.innerHTML = '';
       let foundCurrent = false;
+      let currentUserRank = null;
+      
       snapshot.forEach((doc, idx) => {
         const d = doc.data();
+        const rank = idx + 1;
         const isCurrent = currentUser && d.uid === currentUser.uid;
-        foundCurrent = foundCurrent || isCurrent;
+        
+        if (isCurrent) {
+          foundCurrent = true;
+          currentUserRank = rank;
+        }
+        
+        // Ensure all data is valid before displaying
+        const displayName = d.displayName || 'Anonymous';
+        const photoURL = d.photoURL || 'https://via.placeholder.com/24x24';
+        const score = parseInt(d.score, 10) || 0;
+        const time = parseInt(d.time, 10) || 0;
+        const date = d.date && d.date.toDate ? d.date.toDate().toLocaleDateString() : 'Unknown';
+        
         leaderboardTableBody.innerHTML += `
           <tr${isCurrent ? ' style="background:#ffd70022;"' : ''}>
-            <td>${idx + 1}</td>
-            <td><img src="${d.photoURL}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:0.3em;">${d.displayName}</td>
-            <td>${d.score}</td>
-            <td>${formatLeaderboardTime(d.time)}</td>
-            <td>${d.date && d.date.toDate ? d.date.toDate().toLocaleDateString() : ''}</td>
+            <td>${rank}</td>
+            <td><img src="${photoURL}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:0.3em;">${displayName}</td>
+            <td>${score}</td>
+            <td>${formatLeaderboardTime(time)}</td>
+            <td>${date}</td>
           </tr>
         `;
       });
+      
+      // If current user is not in top 10, fetch their rank separately
       if (!foundCurrent && currentUser) {
-        // Optionally, fetch and show current user's rank if not in Top 10
+        db.collection('leaderboard')
+          .orderBy('score', 'desc')
+          .orderBy('time', 'asc')
+          .get()
+          .then(allSnapshot => {
+            let userRank = null;
+            allSnapshot.forEach((doc, idx) => {
+              if (doc.data().uid === currentUser.uid) {
+                userRank = idx + 1;
+              }
+            });
+            
+            if (userRank) {
+              console.log(`Current user rank: ${userRank}`);
+              // Optionally display user's rank if not in top 10
+              const userRankRow = document.createElement('tr');
+              userRankRow.style.cssText = 'background:#ffd70022; font-weight:bold;';
+              userRankRow.innerHTML = `
+                <td>${userRank}</td>
+                <td><img src="${currentUser.photoURL}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:0.3em;">${currentUser.displayName} (You)</td>
+                <td>Your Score</td>
+                <td>Your Time</td>
+                <td>Today</td>
+              `;
+              leaderboardTableBody.appendChild(userRankRow);
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching user rank:', error);
+          });
       }
     })
     .catch(error => {
@@ -2538,13 +2764,23 @@ function fetchAndDisplayLeaderboard() {
 
 // Show leaderboard after game end
 function showLeaderboardAfterGame(score, time) {
+  console.log('showLeaderboardAfterGame called with:', { score, time, currentUser: currentUser ? currentUser.displayName : 'none' });
+  
   // Optionally, prompt for sign-in if not signed in
   if (!currentUser) {
+    console.log('No user signed in, showing leaderboard modal');
     showLeaderboardModal();
     return;
   }
+  
+  // Ensure score and time are valid
+  const finalScore = parseInt(score, 10) || 0;
+  const finalTime = parseInt(time, 10) || 0;
+  
+  console.log('Submitting to leaderboard:', { finalScore, finalTime });
+  
   // Submit score if not opted out
-  submitToLeaderboard(score, time);
+  submitToLeaderboard(finalScore, finalTime);
   // Fetch and display leaderboard
   fetchAndDisplayLeaderboard();
   showLeaderboardModal();
