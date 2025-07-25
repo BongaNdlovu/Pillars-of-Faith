@@ -2548,7 +2548,7 @@ function testFirebaseConnection() {
     });
 }
 
-// Uncomment the line below to test Firebase connection when the page loads
-// testFirebaseConnection();
+  // Uncomment the line below to test Firebase connection when the page loads
+  testFirebaseConnection();
 
 // Optionally, call showLeaderboardAfterGame(finalScore, finalTime) at game end
