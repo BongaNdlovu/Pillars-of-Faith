@@ -1494,57 +1494,6 @@ body.diet-health-theme .countdown-number {
     line-height: 1;
 }
 
-.difficulty-badge {
-    font-size: 0.8em;
-    font-weight: bold;
-    padding: 2px 8px;
-    border-radius: 12px;
-    color: white;
-    margin-left: 8px;
-    display: inline-block;
-    vertical-align: middle;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    transition: all 0.2s ease;
-}
-
-.difficulty-badge:hover {
-    transform: scale(1.05);
-    box-shadow: 0 3px 6px rgba(0,0,0,0.3);
-}
-
-/* Difficulty-specific colors */
-.difficulty-badge[style*="background: #ff4444"] {
-    background: linear-gradient(135deg, #ff4444, #cc3333) !important;
-}
-
-.difficulty-badge[style*="background: #ffaa00"] {
-    background: linear-gradient(135deg, #ffaa00, #cc8800) !important;
-}
-
-.difficulty-badge[style*="background: #44aa44"] {
-    background: linear-gradient(135deg, #44aa44, #338833) !important;
-}
-
-/* Hard question animations */
-@keyframes hard-question-pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.02); }
-    100% { transform: scale(1); }
-}
-
-@keyframes hard-warning-pulse {
-    0% { opacity: 0.7; transform: translateY(-5px); }
-    50% { opacity: 1; transform: translateY(0); }
-    100% { opacity: 0.7; transform: translateY(-5px); }
-}
-
-@keyframes bonus-pop {
-    0% { opacity: 0; transform: scale(0.5) translateY(10px); }
-    50% { opacity: 1; transform: scale(1.2) translateY(-5px); }
-    100% { opacity: 0; transform: scale(1) translateY(-15px); }
-}
-
 #top-right-controls {
     position: fixed;
     top: 1.5rem;

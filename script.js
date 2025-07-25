@@ -282,72 +282,6 @@ function shuffle(array) {
     return array;
 }
 
-/**
- * Sorts questions by difficulty (hard first, then medium, then easy)
- * Within each difficulty level, questions are shuffled randomly
- * @param {Array} questions - Array of question objects
- * @returns {Array} - Sorted array with hard questions first
- */
-function sortQuestionsByDifficulty(questions) {
-    // Define difficulty weights (higher = harder)
-    const difficultyWeights = {
-        'hard': 3,
-        'medium': 2,
-        'easy': 1
-    };
-    
-    // Sort by difficulty weight (descending) and then shuffle within each difficulty
-    const sortedQuestions = [...questions].sort((a, b) => {
-        const weightA = difficultyWeights[a.difficulty] || 1;
-        const weightB = difficultyWeights[b.difficulty] || 1;
-        return weightB - weightA; // Hard questions first
-    });
-    
-    // Group by difficulty and shuffle within each group
-    const hardQuestions = shuffle(sortedQuestions.filter(q => q.difficulty === 'hard'));
-    const mediumQuestions = shuffle(sortedQuestions.filter(q => q.difficulty === 'medium'));
-    const easyQuestions = shuffle(sortedQuestions.filter(q => q.difficulty === 'easy'));
-    
-    // Combine with hard questions first
-    return [...hardQuestions, ...mediumQuestions, ...easyQuestions];
-}
-
-/**
- * Selects questions with difficulty-based prioritization
- * For shorter games (10, 20 questions): Prioritize harder questions
- * For longer games (50, 100 questions): Mix harder questions throughout but start with hard
- * @param {Array} availableQuestions - All available questions
- * @param {number} numQuestions - Number of questions to select
- * @returns {Array} - Selected questions with difficulty prioritization
- */
-function selectQuestionsByDifficulty(availableQuestions, numQuestions) {
-    const sortedQuestions = sortQuestionsByDifficulty(availableQuestions);
-    
-    if (numQuestions <= 20) {
-        // For shorter games, take the first N questions (prioritizing hard ones)
-        return sortedQuestions.slice(0, numQuestions);
-    } else {
-        // For longer games, create a more balanced distribution
-        const hardQuestions = sortedQuestions.filter(q => q.difficulty === 'hard');
-        const mediumQuestions = sortedQuestions.filter(q => q.difficulty === 'medium');
-        const easyQuestions = sortedQuestions.filter(q => q.difficulty === 'easy');
-        
-        // Calculate distribution for longer games
-        const hardCount = Math.min(Math.ceil(numQuestions * 0.4), hardQuestions.length); // 40% hard
-        const mediumCount = Math.min(Math.ceil(numQuestions * 0.4), mediumQuestions.length); // 40% medium
-        const easyCount = Math.min(numQuestions - hardCount - mediumCount, easyQuestions.length); // 20% easy
-        
-        // Take questions from each difficulty level
-        const selectedHard = hardQuestions.slice(0, hardCount);
-        const selectedMedium = mediumQuestions.slice(0, mediumCount);
-        const selectedEasy = easyQuestions.slice(0, easyCount);
-        
-        // Combine and shuffle to mix difficulties while keeping hard questions prominent
-        const combined = [...selectedHard, ...selectedMedium, ...selectedEasy];
-        return shuffle(combined).slice(0, numQuestions);
-    }
-}
-
 // --- NEW: Get Time Attack Questions ---
 function getAttackModeQuestions(filteredByCategory, questionsToExclude = [], lenient = false) {
     const excludeIds = new Set(questionsToExclude.map(q => q.id));
@@ -748,9 +682,9 @@ const CATEGORY_ICONS = {
 // Fun facts, Bible verses, and health tips
 const FUN_FACTS = [
     // Bible Verses
-    '"I can do all things through Christ who strengthens me." — Philippians 4:13',
-    '"Trust in the Lord with all your heart and lean not on your own understanding." — Proverbs 3:5',
-    '"Beloved, I pray that you may prosper in all things and be in health, just as your soul prospers." — 3 John 1:2',
+    '“I can do all things through Christ who strengthens me.” — Philippians 4:13',
+    '“Trust in the Lord with all your heart and lean not on your own understanding.” — Proverbs 3:5',
+    '“Beloved, I pray that you may prosper in all things and be in health, just as your soul prospers.” — 3 John 1:2',
     // Health Tips
     '🥗 Health Tip: Drinking enough water each day is crucial for many reasons: to regulate body temperature, keep joints lubricated, and deliver nutrients to cells.',
     '🥦 Health Tip: Eating a variety of colorful fruits and vegetables helps your body get a wide range of nutrients.',
@@ -1020,9 +954,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectedCategory = categoryDropdown.value;
         let availableQuestions;
         if (selectedCategory === 'All') {
-            availableQuestions = [...gameQuestions];
+            availableQuestions = shuffle([...gameQuestions]);
         } else {
-            availableQuestions = gameQuestions.filter(q => q.category === selectedCategory);
+            availableQuestions = shuffle(gameQuestions.filter(q => q.category === selectedCategory));
         }
 
         if (isTimeAttackMode) {
@@ -1042,17 +976,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (gameLengthSelect && !isNaN(parseInt(gameLengthSelect.value, 10))) {
                 numQuestions = parseInt(gameLengthSelect.value, 10);
             }
-            
-            // Use difficulty-based question selection instead of random shuffling
-            questions = selectQuestionsByDifficulty(availableQuestions, numQuestions);
-            
-            // Log the difficulty distribution for debugging
-            const difficultyCounts = questions.reduce((acc, q) => {
-                acc[q.difficulty] = (acc[q.difficulty] || 0) + 1;
-                return acc;
-            }, {});
-            console.log(`Selected ${numQuestions} questions with difficulty distribution:`, difficultyCounts);
-            
+            questions = shuffle(availableQuestions).slice(0, numQuestions);
             gameQuestionCount = numQuestions;
             maxWagerValue = 20;
             currentWager = 5;
@@ -1229,47 +1153,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const question = questions[currentQuestionIndex];
-        
-        // Add category icon/badge and difficulty indicator
+        // Add category icon/badge
         const icon = CATEGORY_ICONS[question.category] || '';
-        const difficultyEmoji = {
-            'easy': '🟢',
-            'medium': '🟡', 
-            'hard': '🔴'
-        }[question.difficulty] || '⚪';
-        
-        questionDiv.innerHTML = `
-            <span class='category-badge'>${icon}</span>
-            <span class='difficulty-badge' style='background: ${question.difficulty === 'hard' ? '#ff4444' : question.difficulty === 'medium' ? '#ffaa00' : '#44aa44'}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin-left: 8px;'>${difficultyEmoji} ${question.difficulty.toUpperCase()}</span>
-            ${question.question}
-        `;
-        
-        // Add special visual feedback for hard questions
-        if (question.difficulty === 'hard') {
-            questionDiv.style.border = '2px solid #ff4444';
-            questionDiv.style.boxShadow = '0 0 15px rgba(255, 68, 68, 0.3)';
-            questionDiv.style.animation = 'hard-question-pulse 2s ease-in-out';
-            
-            // Add a warning message for hard questions
-            const hardWarning = document.createElement('div');
-            hardWarning.innerHTML = '⚠️ <strong>Challenge Question!</strong> This is a difficult one - think carefully!';
-            hardWarning.style.cssText = `
-                background: rgba(255, 68, 68, 0.1);
-                border: 1px solid #ff4444;
-                border-radius: 8px;
-                padding: 8px 12px;
-                margin: 8px 0;
-                color: #ff4444;
-                font-size: 0.9em;
-                text-align: center;
-                animation: hard-warning-pulse 2s ease-in-out;
-            `;
-            questionDiv.appendChild(hardWarning);
-        } else {
-            questionDiv.style.border = '';
-            questionDiv.style.boxShadow = '';
-            questionDiv.style.animation = '';
-        }
+        questionDiv.innerHTML = `<span class='category-badge'>${icon}</span> ${question.question}`;
         const shuffledOptions = shuffle(question.options);
         optionsDiv.innerHTML = '';
         optionsDiv.appendChild(createOptionButtons(shuffledOptions, selectAnswer));
@@ -1350,13 +1236,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (correct) {
             playCorrectSound();
             let points = wager * (doublePointsActive ? 2 : 1);
-            
-            // Add bonus points for hard questions
-            if (question.difficulty === 'hard') {
-                points += Math.floor(wager * 0.5); // 50% bonus for hard questions
-                console.log(`Hard question bonus! Base points: ${wager}, Bonus: ${Math.floor(wager * 0.5)}, Total: ${points}`);
-            }
-            
             if (gameMode === 'solo') {
                 const oldScore = playerScore;
                 playerScore += points;
@@ -1377,31 +1256,6 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 selectedBtn.style.transform = '';
             }, 300);
-            
-            // Show bonus indicator for hard questions
-            if (question.difficulty === 'hard') {
-                const bonusIndicator = document.createElement('div');
-                bonusIndicator.innerHTML = `🎯 +${Math.floor(wager * 0.5)} BONUS!`;
-                bonusIndicator.style.cssText = `
-                    position: absolute;
-                    top: -30px;
-                    right: 10px;
-                    background: linear-gradient(135deg, #ff4444, #cc3333);
-                    color: white;
-                    padding: 4px 8px;
-                    border-radius: 12px;
-                    font-size: 0.8em;
-                    font-weight: bold;
-                    animation: bonus-pop 1s ease-out;
-                    z-index: 100;
-                `;
-                selectedBtn.style.position = 'relative';
-                selectedBtn.appendChild(bonusIndicator);
-                
-                setTimeout(() => {
-                    bonusIndicator.remove();
-                }, 1000);
-            }
         } else {
             playSound(audioWrong);
             shakeElement(selectedBtn);
