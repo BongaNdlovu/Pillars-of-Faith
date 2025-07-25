@@ -849,10 +849,48 @@ function preloadAudioAssets(onProgress, onComplete) {
     });
 }
 
+// --- Video Preload Logic ---
+const allBackgroundVideos = [
+    'background.mp4',
+    'background 2.mp4',
+    'background 3.mp4',
+    'background 5.mp4',
+    'background 6.mp4',
+    'background 7.mp4'
+];
+let videoPreloadCount = 0;
+function preloadVideoAssets(onProgress, onComplete) {
+    videoPreloadCount = 0;
+    allBackgroundVideos.forEach((src, idx) => {
+        const vid = document.createElement('video');
+        vid.src = src;
+        vid.preload = 'auto';
+        vid.muted = true;
+        vid.style.display = 'none';
+        vid.oncanplaythrough = () => {
+            videoPreloadCount++;
+            onProgress && onProgress(Math.round((videoPreloadCount/allBackgroundVideos.length)*100));
+            if (videoPreloadCount === allBackgroundVideos.length) {
+                onComplete && onComplete();
+            }
+        };
+        document.body.appendChild(vid);
+    });
+}
+
 // Show loading overlay and preload assets on DOMContentLoaded
 showLoadingOverlay();
+let audioLoaded = false, videoLoaded = false;
+function tryHideLoadingOverlay() {
+    if (audioLoaded && videoLoaded) setTimeout(hideLoadingOverlay, 400);
+}
 preloadAudioAssets(setLoadingProgress, () => {
-    setTimeout(hideLoadingOverlay, 400);
+    audioLoaded = true;
+    tryHideLoadingOverlay();
+});
+preloadVideoAssets(null, () => {
+    videoLoaded = true;
+    tryHideLoadingOverlay();
 });
 
 // --- Refactor: Cache DOM queries for options/buttons ---

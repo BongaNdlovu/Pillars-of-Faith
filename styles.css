@@ -1781,3 +1781,9 @@ label {
   mix-blend-mode: screen;
   background-color: #000;
 }
+
+/* Reduce all transition and animation durations globally */
+* {
+  transition-duration: 0.18s !important;
+  animation-duration: 0.18s !important;
+}
