@@ -1,0 +1,24 @@
+{
+  "name": "pillars-of-faith",
+  "version": "1.0.0",
+  "description": "A trivia game with a global leaderboard, deployed as a static web app.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BongaNdlovu/Pillars-of-Faith"
+  },
+  "author": "Bonga Ndlovu",
+  "license": "MIT",
+  "scripts": {
+    "start": "npx serve .",
+    "preview": "npx serve .",
+    "deploy": "echo 'Deploy using Firebase Hosting, Vercel, or GitHub Pages.'"
+  },
+  "keywords": [
+    "trivia",
+    "game",
+    "firebase",
+    "leaderboard",
+    "static",
+    "pillars-of-faith"
+  ]
+} 
