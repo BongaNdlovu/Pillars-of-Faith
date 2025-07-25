@@ -1564,6 +1564,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 timeEl.style.display = 'block';
                 resultsSolo.querySelector('.stars').style.display = 'none';
                 achievementTitle.style.display = 'none';
+                // Show global leaderboard (score, time)
+                showLeaderboardAfterGame(playerScore, Math.round(gameElapsedTime));
             } else { // Teams Time Attack
                 resultsSolo.style.display = 'none';
                 resultsTeams.style.display = 'block';
@@ -2427,3 +2429,81 @@ auth.onAuthStateChanged(user => {
   currentUser = user;
   updateUserInfoUI();
 });
+
+// --- Firestore Leaderboard Integration ---
+const db = firebase.firestore();
+const leaderboardTableBody = document.querySelector('#leaderboard-table tbody');
+
+// Helper: format time (seconds) as mm:ss
+function formatLeaderboardTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+// Submit score to leaderboard
+function submitToLeaderboard(score, time) {
+  if (!currentUser || optoutCheckbox.checked) return;
+  const entry = {
+    uid: currentUser.uid,
+    displayName: currentUser.displayName,
+    photoURL: currentUser.photoURL,
+    score: score,
+    time: time,
+    date: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  // Only allow one entry per user per session (or update if better)
+  db.collection('leaderboard').doc(currentUser.uid).get().then(doc => {
+    if (!doc.exists || (score > doc.data().score) || (score === doc.data().score && time < doc.data().time)) {
+      db.collection('leaderboard').doc(currentUser.uid).set(entry);
+    }
+  });
+}
+
+// Fetch and display Top 10 leaderboard
+function fetchAndDisplayLeaderboard() {
+  leaderboardTableBody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
+  db.collection('leaderboard')
+    .orderBy('score', 'desc')
+    .orderBy('time', 'asc')
+    .orderBy('date', 'asc')
+    .limit(10)
+    .get()
+    .then(snapshot => {
+      leaderboardTableBody.innerHTML = '';
+      let foundCurrent = false;
+      snapshot.forEach((doc, idx) => {
+        const d = doc.data();
+        const isCurrent = currentUser && d.uid === currentUser.uid;
+        foundCurrent = foundCurrent || isCurrent;
+        leaderboardTableBody.innerHTML += `
+          <tr${isCurrent ? ' style="background:#ffd70022;"' : ''}>
+            <td>${idx + 1}</td>
+            <td><img src="${d.photoURL}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:0.3em;">${d.displayName}</td>
+            <td>${d.score}</td>
+            <td>${formatLeaderboardTime(d.time)}</td>
+            <td>${d.date && d.date.toDate ? d.date.toDate().toLocaleDateString() : ''}</td>
+          </tr>
+        `;
+      });
+      if (!foundCurrent && currentUser) {
+        // Optionally, fetch and show current user's rank if not in Top 10
+      }
+    });
+}
+
+// Show leaderboard after game end
+function showLeaderboardAfterGame(score, time) {
+  // Optionally, prompt for sign-in if not signed in
+  if (!currentUser) {
+    showLeaderboardModal();
+    return;
+  }
+  // Submit score if not opted out
+  submitToLeaderboard(score, time);
+  // Fetch and display leaderboard
+  fetchAndDisplayLeaderboard();
+  showLeaderboardModal();
+}
+
+// Optionally, call showLeaderboardAfterGame(finalScore, finalTime) at game end
