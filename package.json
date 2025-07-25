@@ -9,9 +9,14 @@
   "author": "Bonga Ndlovu",
   "license": "MIT",
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "start": "npx serve .",
-    "preview": "npx serve .",
-    "deploy": "echo 'Deploy using Firebase Hosting, Vercel, or GitHub Pages.'"
+    "serve": "npx serve ."
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
   },
   "keywords": [
     "trivia",
