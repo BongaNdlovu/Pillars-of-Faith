@@ -61,7 +61,14 @@ const audioCorrect2 = document.getElementById('audio-correct-2');
 const audioWrong = document.getElementById('audio-wrong');
 const audioTimeup = document.getElementById('audio-timeup');
 const audioRiser = document.getElementById('audio-riser');
-const audioBg = document.getElementById('audio-bg');
+// const audioBg = document.getElementById('audio-bg'); // Remove old
+const audioBgTracks = [
+    document.getElementById('audio-bg-1'),
+    document.getElementById('audio-bg-2'),
+    document.getElementById('audio-bg-3')
+];
+let currentBgTrackIndex = 0;
+let currentBgTrack = null;
 const audioTimerTick = document.getElementById('audio-timer-tick'); // old ticking sound
 const audioTickingTime = document.getElementById('audio-ticking-time'); // new ticking sound
 const muteToggle = document.getElementById('mute-toggle');
@@ -89,12 +96,29 @@ function playCorrectSound() {
 }
 function playBgMusic() {
     if (!isMuted) {
-        audioBg.volume = 0.5;
-        audioBg.play().catch(e => console.warn('Error playing background music:', e));
+        // Stop any currently playing background track
+        audioBgTracks.forEach(track => {
+            track.pause();
+            track.currentTime = 0;
+            track.onended = null;
+        });
+        // Play the current track
+        currentBgTrack = audioBgTracks[currentBgTrackIndex];
+        currentBgTrack.volume = 0.5;
+        currentBgTrack.currentTime = 0;
+        currentBgTrack.play().catch(e => console.warn('Error playing background music:', e));
+        // Set up event to play next track when this one ends
+        currentBgTrack.onended = () => {
+            currentBgTrackIndex = (currentBgTrackIndex + 1) % audioBgTracks.length;
+            playBgMusic();
+        };
     }
 }
 function pauseBgMusic() {
-    audioBg.pause();
+    audioBgTracks.forEach(track => {
+        track.pause();
+        track.onended = null;
+    });
 }
 function startTicking() {
     if (isMuted) return;
@@ -140,7 +164,7 @@ muteToggle.addEventListener('click', () => {
     // Create an array of all audio elements
     const allAudioElements = [
         audioCorrect1, audioCorrect2, audioWrong, audioTimeup,
-        audioRiser, audioBg, audioTimerTick, audioTickingTime,
+        audioRiser, ...audioBgTracks, audioTimerTick, audioTickingTime,
         audioStreakWowza, audioStreakZing, audioStreakKawabanga,
         audioStreakLetsGo, audioStreakNice,
         audioTransition, audioTransition2
@@ -170,7 +194,7 @@ function ensureUserInteraction() {
         // Pre-load audio files after user interaction
         const allAudioElements = [
             audioCorrect1, audioCorrect2, audioWrong, audioTimeup,
-            audioRiser, audioBg, audioTimerTick, audioTickingTime,
+            audioRiser, ...audioBgTracks, audioTimerTick, audioTickingTime,
             audioStreakWowza, audioStreakZing, audioStreakKawabanga,
             audioStreakLetsGo, audioStreakNice,
             audioTransition, audioTransition2
@@ -852,6 +876,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Category Dropdown Population
     let categories = Array.from(new Set(gameQuestions.map(q => q.category)));
     categories = categories.filter(cat => cat && cat !== 'undefined');
+    categories = categories.filter(cat => !['General SDA', 'Diet & Health', 'Music'].includes(cat));
     if (categoryDropdown) {
         categoryDropdown.innerHTML = '<option value="All">All Categories</option>' +
             categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
@@ -1106,22 +1131,13 @@ document.addEventListener('DOMContentLoaded', () => {
         explanationDiv.innerText = '';
         // Set prophecy mode if needed
         const currentQ = questions[currentQuestionIndex];
-        const bgVideo = document.getElementById('background-video');
-        if (currentQ && (currentQ.category === 'Prophecy' || currentQ.category === 'The Great Controversy')) {
+        const isProphecy = currentQ && (currentQ.category === 'Prophecy' || currentQ.category === 'The Great Controversy');
+        if (isProphecy) {
             document.body.classList.add('prophecy-mode');
-            if (bgVideo && bgVideo.src && !bgVideo.src.endsWith('background%202.mp4') && !bgVideo.src.endsWith('background 2.mp4')) {
-                bgVideo.src = 'background 2.mp4';
-                bgVideo.load();
-                bgVideo.play().catch(()=>{});
-            }
         } else {
             document.body.classList.remove('prophecy-mode');
-            if (bgVideo && bgVideo.src && !bgVideo.src.endsWith('background.mp4')) {
-                bgVideo.src = 'background.mp4';
-                bgVideo.load();
-                bgVideo.play().catch(()=>{});
-            }
         }
+        setBackgroundVideoForQuestion(isProphecy);
         // Set diet & health theme if needed
         // REMOVE the following lines so health questions use the default theme
         // if (currentQ && currentQ.category === 'Diet & Health') {
@@ -1235,9 +1251,17 @@ document.addEventListener('DOMContentLoaded', () => {
             explanationDiv.innerText = '💡 ' + currentQ.explanation;
             explanationDiv.style.display = 'block';
         }
-
-        if (isTimeAttackMode) {
-            setTimeout(handleEndOfQuestion, 1500);
+        // Hide deep insight by default
+        deepInsightDiv.style.display = 'none';
+        // Hide next button by default
+        nextBtn.style.display = 'none';
+        // If there is a deep insight, show it after explanation, else show next button as usual
+        if (currentQ.deepInsight) {
+            setTimeout(() => {
+                explanationDiv.style.display = 'none';
+                deepInsightContent.innerText = '🔎 ' + currentQ.deepInsight;
+                deepInsightDiv.style.display = 'block';
+            }, 1200); // Show deep insight after a short delay
         } else {
             nextBtn.style.display = 'block';
         }
@@ -2235,4 +2259,73 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('service-worker.js');
   });
+}
+
+// --- Background video sequential playback ---
+let currentBgVideoIndex = 0;
+let currentBgVideoSet = [];
+
+function setSequentialBackgroundVideo(videoSet) {
+    const bgVideo = document.getElementById('background-video');
+    if (!bgVideo) return;
+    // If the set has changed, reset index
+    if (currentBgVideoSet.join(',') !== videoSet.join(',')) {
+        currentBgVideoSet = videoSet.slice();
+        currentBgVideoIndex = 0;
+    }
+    const selectedBg = currentBgVideoSet[currentBgVideoIndex];
+    if (!bgVideo.src.endsWith(selectedBg)) {
+        bgVideo.src = selectedBg;
+        bgVideo.load();
+        bgVideo.play().catch(()=>{});
+    }
+    // Remove previous event
+    bgVideo.onended = null;
+    // Set up event to play next video in sequence
+    bgVideo.onended = () => {
+        currentBgVideoIndex = (currentBgVideoIndex + 1) % currentBgVideoSet.length;
+        setSequentialBackgroundVideo(currentBgVideoSet);
+    };
+}
+
+// --- Background video cycling per question ---
+let bgVideoIndices = {
+    prophecy: 0,
+    normal: 0
+};
+const prophecyBackgrounds = ['background 2.mp4', 'background 3.mp4', 'background 7.mp4'];
+const normalBackgrounds = ['background 5.mp4', 'background 6.mp4'];
+
+function setBackgroundVideoForQuestion(isProphecy) {
+    const bgVideo = document.getElementById('background-video');
+    if (!bgVideo) return;
+    if (isProphecy) {
+        const selectedBg = prophecyBackgrounds[bgVideoIndices.prophecy];
+        if (!bgVideo.src.endsWith(selectedBg)) {
+            bgVideo.src = selectedBg;
+            bgVideo.load();
+            bgVideo.play().catch(()=>{});
+        }
+        bgVideoIndices.prophecy = (bgVideoIndices.prophecy + 1) % prophecyBackgrounds.length;
+    } else {
+        const selectedBg = normalBackgrounds[bgVideoIndices.normal];
+        if (!bgVideo.src.endsWith(selectedBg)) {
+            bgVideo.src = selectedBg;
+            bgVideo.load();
+            bgVideo.play().catch(()=>{});
+        }
+        bgVideoIndices.normal = (bgVideoIndices.normal + 1) % normalBackgrounds.length;
+    }
+}
+
+const deepInsightDiv = document.getElementById('deep-insight-div');
+const deepInsightContent = document.getElementById('deep-insight-content');
+const deepInsightNextBtn = document.getElementById('deep-insight-next-btn');
+
+// Add event listener for deep insight next button
+if (deepInsightNextBtn) {
+    deepInsightNextBtn.onclick = function() {
+        deepInsightDiv.style.display = 'none';
+        nextBtn.style.display = 'block';
+    };
 }

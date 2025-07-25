@@ -138,6 +138,10 @@
             <p>Question text goes here...</p>
             <div class="options"></div>
         </div>
+        <div id="deep-insight-div" style="display:none; margin: 1.2rem auto 0 auto; max-width: 90%; background: rgba(255,255,255,0.18); border: 2.5px solid #4b8cff; border-radius: 14px; font-family: 'Bangers', cursive; font-size: 1.25rem; color: #222; text-align: center; padding: 1rem 1.2rem; box-shadow: 0 2px 12px #4b8cff22;">
+  <div id="deep-insight-content"></div>
+  <button id="deep-insight-next-btn" class="comic-button" style="margin-top: 1rem;">Next Question</button>
+</div>
         <button id="next" class="comic-button">Next Question</button>
     </div>
     <div class="game-over" id="game-over" style="display:none;">
@@ -199,7 +203,12 @@
     <audio id="audio-wrong" src="WRONG BUZZER 7.wav" preload="auto"></audio>
     <audio id="audio-timeup" src="Motionarray_Floraphonic_Gameshow_Buzzer_1.wav" preload="auto"></audio>
     <audio id="audio-riser" src="Semi Impact Risers-001.wav" preload="auto"></audio>
-    <audio id="audio-bg" src="2024-12-08_-_Detective_Revelation_-_www.FesliyanStudios.com.mp3" preload="auto" loop></audio>
+    <!-- Remove old background music -->
+    <!-- <audio id="audio-bg" src="2024-12-08_-_Detective_Revelation_-_www.FesliyanStudios.com.mp3" preload="auto" loop></audio> -->
+    <!-- Add new background music tracks -->
+    <audio id="audio-bg-1" src="soundtrack 1.mp3" preload="auto"></audio>
+    <audio id="audio-bg-2" src="soundtrack 2.mp3" preload="auto"></audio>
+    <audio id="audio-bg-3" src="soundtrack 3.mp3" preload="auto"></audio>
     <audio id="audio-timer-tick" src="Motionarray_Floraphonic_Gameshow_Buzzer_1.wav" preload="auto"></audio>
     <audio id="audio-ticking-time" src="ticking_time.wav" preload="auto"></audio>
     <audio id="audio-streak-wowza" src="wowza.mp3" preload="auto"></audio>
