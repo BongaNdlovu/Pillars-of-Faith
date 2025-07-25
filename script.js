@@ -2378,12 +2378,13 @@ if (deepInsightNextBtn) {
 // TODO: You need to create a Web App in your Firebase project to get the API key and other credentials
 // Go to https://console.firebase.google.com/ → Your Project → Project Settings → General → Your Apps → Add Web App
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY", // ← You need to create a Web App to get this
-  authDomain: "pillars-of-faith.firebaseapp.com", // ← This should be correct based on your project ID
-  projectId: "pillars-of-faith", // ← Your actual project ID
-  storageBucket: "pillars-of-faith.appspot.com", // ← This should be correct based on your project ID
-  messagingSenderId: "361998196975", // ← Your project number
-  appId: "YOUR_APP_ID" // ← You need to create a Web App to get this
+  apiKey: "AIzaSyAKExnN5p_QiS7iX-2x4S8Ttf7cPQ_U72E",
+  authDomain: "pillars-of-faith.firebaseapp.com",
+  projectId: "pillars-of-faith",
+  storageBucket: "pillars-of-faith.appspot.com",
+  messagingSenderId: "361998196975",
+  appId: "1:361998196975:web:a2c3dabc5c8a760868bb1a",
+  measurementId: "G-53MF5JWV2V"
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
