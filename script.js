@@ -2420,13 +2420,36 @@ function updateUserInfoUI() {
   }
 }
 googleSigninBtn.onclick = function() {
+  console.log('Attempting Google sign-in...');
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider).then(result => {
+    console.log('✅ Google sign-in successful:', result.user.displayName);
     currentUser = result.user;
     updateUserInfoUI();
   }).catch(error => {
-    console.error('Error signing in with Google:', error);
-    alert('Failed to sign in with Google. Please try again.');
+    console.error('❌ Google sign-in failed:', error);
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+    
+    // More specific error messages
+    let errorMessage = 'Failed to sign in with Google. ';
+    switch(error.code) {
+      case 'auth/popup-closed-by-user':
+        errorMessage += 'Sign-in was cancelled.';
+        break;
+      case 'auth/popup-blocked':
+        errorMessage += 'Pop-up was blocked by browser. Please allow pop-ups for this site.';
+        break;
+      case 'auth/unauthorized-domain':
+        errorMessage += 'This domain is not authorized. Please check Firebase Console settings.';
+        break;
+      case 'auth/operation-not-allowed':
+        errorMessage += 'Google sign-in is not enabled. Please enable it in Firebase Console.';
+        break;
+      default:
+        errorMessage += 'Please try again.';
+    }
+    alert(errorMessage);
   });
 };
 googleSignoutBtn.onclick = function() {
@@ -2529,23 +2552,41 @@ function showLeaderboardAfterGame(score, time) {
 
 // Test Firebase connection (for debugging)
 function testFirebaseConnection() {
-  console.log('Testing Firebase connection...');
+  console.log('🔍 Testing Firebase connection...');
   if (typeof firebase === 'undefined') {
-    console.error('Firebase is not loaded!');
+    console.error('❌ Firebase is not loaded! Check if Firebase SDKs are properly included.');
     return;
   }
+  
+  console.log('✅ Firebase SDK loaded successfully');
+  console.log('📋 Firebase config:', {
+    projectId: firebaseConfig.projectId,
+    authDomain: firebaseConfig.authDomain,
+    apiKey: firebaseConfig.apiKey ? '***' + firebaseConfig.apiKey.slice(-4) : 'MISSING'
+  });
   
   // Test Firestore connection
   db.collection('test').doc('test').get()
     .then(() => {
-      console.log('✅ Firebase connection successful!');
+      console.log('✅ Firestore connection successful!');
     })
     .catch(error => {
-      console.error('❌ Firebase connection failed:', error);
+      console.error('❌ Firestore connection failed:', error);
       if (error.code === 'permission-denied') {
         console.log('💡 This might be due to Firestore security rules. Check the FIREBASE_SETUP.md file.');
       }
     });
+    
+  // Test Auth connection
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      console.log('✅ Auth connection successful! User:', user.displayName);
+    } else {
+      console.log('✅ Auth connection successful! No user signed in.');
+    }
+  }, error => {
+    console.error('❌ Auth connection failed:', error);
+  });
 }
 
   // Uncomment the line below to test Firebase connection when the page loads
