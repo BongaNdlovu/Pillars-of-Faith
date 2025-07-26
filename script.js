@@ -1565,16 +1565,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (gameMode === 'solo') {
                 resultsSolo.style.display = 'block';
-                resultsSolo.children[0].innerText = `Your Score: ${playerScore}`;
+                if (resultsSolo.children[0]) {
+                    resultsSolo.children[0].innerText = `Your Score: ${playerScore}`;
+                }
                 console.log(`Time attack mode - Final score displayed: ${playerScore}`);
                 const attempted = timeRanOut ? currentQuestionIndex + 1 : 30;
-                resultsSolo.children[1].innerText = `Correct Answers: ${correctAnswers}/${attempted}`;
-                resultsSolo.children[2].innerText = `Longest Streak: ${longestStreak}`;
+                if (resultsSolo.children[1]) {
+                    resultsSolo.children[1].innerText = `Correct Answers: ${correctAnswers}/${attempted}`;
+                }
+                if (resultsSolo.children[2]) {
+                    resultsSolo.children[2].innerText = `Longest Streak: ${longestStreak}`;
+                }
                 const timeEl = document.getElementById('results-solo-time');
-                timeEl.innerText = timeTakenStr;
-                timeEl.style.display = 'block';
-                resultsSolo.querySelector('.stars').style.display = 'none';
-                achievementTitle.style.display = 'none';
+                if (timeEl) {
+                    timeEl.innerText = timeTakenStr;
+                    timeEl.style.display = 'block';
+                }
+                const starsEl = resultsSolo.querySelector('.stars');
+                if (starsEl) {
+                    starsEl.style.display = 'none';
+                }
+                if (achievementTitle) {
+                    achievementTitle.style.display = 'none';
+                }
                 // Show global leaderboard (score, time)
                 showLeaderboardAfterGame(playerScore, Math.round(gameElapsedTime));
             } else { // Teams Time Attack
@@ -1582,8 +1595,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 resultsTeams.style.display = 'block';
                 
                 // USE THE SAVED BLUE SCORE FOR THE FINAL DISPLAY
-                resultsTeams.children[0].innerText = `Blue: ${timeAttackBlueTeamFinalScore} pts`;
-                resultsTeams.children[1].innerText = `Black: ${teamBlackScore} pts`;
+                if (resultsTeams.children[0]) {
+                    resultsTeams.children[0].innerText = `Blue: ${timeAttackBlueTeamFinalScore} pts`;
+                }
+                if (resultsTeams.children[1]) {
+                    resultsTeams.children[1].innerText = `Black: ${teamBlackScore} pts`;
+                }
                 
                 // Determine winner by comparing the final scores
                 let winnerText = '';
@@ -1594,10 +1611,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     winnerText = "🤝 It's a Tie!";
                 }
-                teamWinner.innerText = winnerText;
+                if (teamWinner) {
+                    teamWinner.innerText = winnerText;
+                }
                 
                 // You can hide the time element here as it's not the primary win condition
-                document.getElementById('results-teams-time').style.display = 'none';
+                const teamsTimeEl = document.getElementById('results-teams-time');
+                if (teamsTimeEl) {
+                    teamsTimeEl.style.display = 'none';
+                }
             }
 
         } else {
@@ -1640,19 +1662,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Update results with enhanced animations
                 setTimeout(() => {
-                    resultsSolo.children[0].innerText = `Your Score: ${playerScore}`;
-                    resultsSolo.children[0].classList.add('score-animate-up');
+                    if (resultsSolo.children[0]) {
+                        resultsSolo.children[0].innerText = `Your Score: ${playerScore}`;
+                        resultsSolo.children[0].classList.add('score-animate-up');
+                    }
                     console.log(`Final score displayed: ${playerScore}`);
                 }, 200);
                 
                 setTimeout(() => {
-                    resultsSolo.children[1].innerText = `Correct Answers: ${correctAnswers}/${questions.length}`;
-                    resultsSolo.children[1].classList.add('fade-in');
+                    if (resultsSolo.children[1]) {
+                        resultsSolo.children[1].innerText = `Correct Answers: ${correctAnswers}/${questions.length}`;
+                        resultsSolo.children[1].classList.add('fade-in');
+                    }
                 }, 400);
                 
                 setTimeout(() => {
-                    resultsSolo.children[2].innerText = `Longest Streak: ${longestStreak}`;
-                    resultsSolo.children[2].classList.add('fade-in');
+                    if (resultsSolo.children[2]) {
+                        resultsSolo.children[2].innerText = `Longest Streak: ${longestStreak}`;
+                        resultsSolo.children[2].classList.add('fade-in');
+                    }
                 }, 600);
                 
                 // Calculate and display stars with animation
@@ -1815,7 +1843,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let icon = '';
             if (idx === 0) icon = '🥇';
             else if (idx === 1) icon = '🥈';
-            else if (idx === 2) icon = '';
+            else if (idx === 2) icon = '🥉';
             else icon = `${idx + 1}.`;
             
             // Check if current player
