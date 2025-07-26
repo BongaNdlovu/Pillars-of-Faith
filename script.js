@@ -2564,23 +2564,45 @@ function submitToLeaderboard(score, time) {
 
 // Fetch and display Top 10 leaderboard
 function fetchAndDisplayLeaderboard() {
-  console.log('Fetching leaderboard data...');
-  leaderboardTableBody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
-  db.collection('leaderboard')
-    .orderBy('score', 'desc')
-    .orderBy('time', 'asc')
-    .orderBy('date', 'asc')
-    .limit(10)
-    .get()
+  try {
+    console.log('Fetching leaderboard data...');
+    console.log('leaderboardTableBody element:', leaderboardTableBody);
+    console.log('Firebase db object:', db);
+    if (!leaderboardTableBody) {
+      console.error('leaderboardTableBody element not found!');
+      return;
+    }
+    if (!db) {
+      console.error('Firebase db object not found!');
+      return;
+    }
+    leaderboardTableBody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
+    console.log('Executing Firebase query...');
+    db.collection('leaderboard')
+      .orderBy('score', 'desc')
+      .limit(10)
+      .get()
     .then(snapshot => {
       console.log('Leaderboard data received:', snapshot.docs.map(doc => doc.data()));
+      console.log('Snapshot size:', snapshot.size);
+      console.log('Snapshot empty:', snapshot.empty);
       leaderboardTableBody.innerHTML = '';
       let foundCurrent = false;
       let currentUserRank = null;
       
       snapshot.forEach((doc, idx) => {
         const d = doc.data();
+        console.log('Processing leaderboard entry:', { 
+          idx, 
+          idxType: typeof idx, 
+          docId: doc.id, 
+          data: d,
+          hasScore: 'score' in d,
+          hasUid: 'uid' in d,
+          hasDisplayName: 'displayName' in d
+        });
         const rank = idx + 1;
+        console.log('Calculated rank:', { rank, rankType: typeof rank });
         const isCurrent = currentUser && d.uid === currentUser.uid;
         
         if (isCurrent) {
@@ -2595,11 +2617,14 @@ function fetchAndDisplayLeaderboard() {
         const time = parseInt(d.time, 10) || 0;
         const date = d.date && d.date.toDate ? d.date.toDate().toLocaleDateString() : 'Unknown';
         
-        console.log('Displaying leaderboard entry:', { rank, displayName, score, time, date, isCurrent });
+        // Ensure rank is a valid number
+        const safeRank = isNaN(rank) ? '?' : rank;
+        
+        console.log('Displaying leaderboard entry:', { rank: safeRank, displayName, score, time, date, isCurrent });
         
         leaderboardTableBody.innerHTML += `
           <tr${isCurrent ? ' style="background:#ffd70022;"' : ''}>
-            <td>${rank}</td>
+            <td>${safeRank}</td>
             <td><img src="${photoURL}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:0.3em;">${displayName}</td>
             <td>${score}</td>
             <td>${formatLeaderboardTime(time)}</td>
@@ -2624,11 +2649,13 @@ function fetchAndDisplayLeaderboard() {
             
             if (userRank) {
               console.log(`Current user rank: ${userRank}`);
+              // Ensure userRank is a valid number
+              const safeUserRank = isNaN(userRank) ? '?' : userRank;
               // Optionally display user's rank if not in top 10
               const userRankRow = document.createElement('tr');
               userRankRow.style.cssText = 'background:#ffd70022; font-weight:bold;';
               userRankRow.innerHTML = `
-                <td>${userRank}</td>
+                <td>${safeUserRank}</td>
                 <td><img src="${currentUser.photoURL}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:0.3em;">${currentUser.displayName} (You)</td>
                 <td>Your Score</td>
                 <td>Your Time</td>
@@ -2646,6 +2673,12 @@ function fetchAndDisplayLeaderboard() {
       console.error('Error fetching leaderboard:', error);
       leaderboardTableBody.innerHTML = '<tr><td colspan="5" style="color: #ff6b6b;">Unable to load leaderboard. Please check your Firebase configuration.</td></tr>';
     });
+  } catch (error) {
+    console.error('Error in fetchAndDisplayLeaderboard:', error);
+    if (leaderboardTableBody) {
+      leaderboardTableBody.innerHTML = '<tr><td colspan="5" style="color: #ff6b6b;">Error loading leaderboard.</td></tr>';
+    }
+  }
 }
 
 // Show leaderboard after game end
