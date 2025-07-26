@@ -233,7 +233,7 @@ const confettiSettings = { target: 'confetti-canvas', respawn: false, clock: 30,
 const confetti = new ConfettiGenerator(confettiSettings);
 
 // --- Timer and Game State Variables ---
-let TIME_LIMIT = 20; // was 15, now 20 for all modes
+let TIME_LIMIT = 10; // was 20, now 10 for harder gameplay
 let questions = [];
 let currentQuestionIndex = 0;
 let gameMode = 'solo'; // 'solo' or 'teams'
@@ -245,7 +245,7 @@ let currentStreak = 0;
 let longestStreak = 0;
 let correctAnswers = 0;
 let timer;
-let timeLeft = 15;
+let timeLeft = 10;
 
 // --- NEW FOR TIME ATTACK MODE ---
 let isTimeAttackMode = false; // Always false to disable time attack mode
@@ -1104,7 +1104,7 @@ document.addEventListener('DOMContentLoaded', () => {
         isLightningRound = (currentQuestionIndex > 0 && currentQuestionIndex % roundSize === 0);
         
         // Dynamic wager limits based on game state
-        TIME_LIMIT = 20;
+        TIME_LIMIT = 10;
         
         if (isLightningRound) {
             // Higher stakes for lightning rounds
@@ -1712,7 +1712,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     normalModeTime = (Date.now() - gameStartTime) / 1000;
                 } else {
                     // Fallback: estimate time based on question count and average time per question
-                    normalModeTime = questions.length * 15; // Assume 15 seconds per question average
+                    normalModeTime = questions.length * 10; // Assume 10 seconds per question average
                     console.warn('gameStartTime was null, using estimated time for leaderboard');
                 }
                 showLeaderboardAfterGame(playerScore, Math.round(normalModeTime));
@@ -2533,7 +2533,15 @@ function submitToLeaderboard(score, time) {
   const finalScore = parseInt(score, 10) || 0;
   const finalTime = parseInt(time, 10) || 0;
   
-  console.log('Submitting score to leaderboard:', { score: finalScore, time: finalTime, user: currentUser.displayName });
+  console.log('Submitting score to leaderboard:', { 
+    originalScore: score, 
+    originalTime: time,
+    finalScore: finalScore, 
+    finalTime: finalTime, 
+    user: currentUser.displayName,
+    currentPlayerScore: playerScore,
+    timeAttackBlueTeamFinalScore: timeAttackBlueTeamFinalScore
+  });
   
   const entry = {
     uid: currentUser.uid,
@@ -2544,26 +2552,19 @@ function submitToLeaderboard(score, time) {
     date: firebase.firestore.FieldValue.serverTimestamp()
   };
   
-  // Only allow one entry per user per session (or update if better)
-  db.collection('leaderboard').doc(currentUser.uid).get().then(doc => {
-    if (!doc.exists || (finalScore > doc.data().score) || (finalScore === doc.data().score && finalTime < doc.data().time)) {
-      db.collection('leaderboard').doc(currentUser.uid).set(entry)
-        .then(() => {
-          console.log('✅ Score submitted successfully:', finalScore);
-        })
-        .catch(error => {
-          console.error('Error submitting score:', error);
-        });
-    } else {
-      console.log('Score not submitted - existing score is better or equal');
-    }
-  }).catch(error => {
-    console.error('Error checking existing score:', error);
-  });
+  // Always submit the current score - let the leaderboard ranking handle the display
+  db.collection('leaderboard').doc(currentUser.uid).set(entry)
+    .then(() => {
+      console.log('✅ Score submitted successfully:', finalScore);
+    })
+    .catch(error => {
+      console.error('Error submitting score:', error);
+    });
 }
 
 // Fetch and display Top 10 leaderboard
 function fetchAndDisplayLeaderboard() {
+  console.log('Fetching leaderboard data...');
   leaderboardTableBody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
   db.collection('leaderboard')
     .orderBy('score', 'desc')
@@ -2572,6 +2573,7 @@ function fetchAndDisplayLeaderboard() {
     .limit(10)
     .get()
     .then(snapshot => {
+      console.log('Leaderboard data received:', snapshot.docs.map(doc => doc.data()));
       leaderboardTableBody.innerHTML = '';
       let foundCurrent = false;
       let currentUserRank = null;
@@ -2592,6 +2594,8 @@ function fetchAndDisplayLeaderboard() {
         const score = parseInt(d.score, 10) || 0;
         const time = parseInt(d.time, 10) || 0;
         const date = d.date && d.date.toDate ? d.date.toDate().toLocaleDateString() : 'Unknown';
+        
+        console.log('Displaying leaderboard entry:', { rank, displayName, score, time, date, isCurrent });
         
         leaderboardTableBody.innerHTML += `
           <tr${isCurrent ? ' style="background:#ffd70022;"' : ''}>
@@ -2647,6 +2651,14 @@ function fetchAndDisplayLeaderboard() {
 // Show leaderboard after game end
 function showLeaderboardAfterGame(score, time) {
   console.log('showLeaderboardAfterGame called with:', { score, time, currentUser: currentUser ? currentUser.displayName : 'none' });
+  console.log('Current game state:', { 
+    isTimeAttackMode, 
+    gameMode, 
+    playerScore, 
+    timeAttackBlueTeamFinalScore,
+    teamBlueScore,
+    teamBlackScore 
+  });
   
   // Optionally, prompt for sign-in if not signed in
   if (!currentUser) {
@@ -2663,9 +2675,11 @@ function showLeaderboardAfterGame(score, time) {
   
   // Submit score if not opted out
   submitToLeaderboard(finalScore, finalTime);
-  // Fetch and display leaderboard
-  fetchAndDisplayLeaderboard();
-  showLeaderboardModal();
+  // Fetch and display leaderboard after a short delay to ensure submission is complete
+  setTimeout(() => {
+    fetchAndDisplayLeaderboard();
+    showLeaderboardModal();
+  }, 1000);
 }
 
 // Test Firebase connection (for debugging)
