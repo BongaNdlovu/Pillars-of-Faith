@@ -925,6 +925,97 @@ document.addEventListener('DOMContentLoaded', () => {
     if (funFactBox) {
         funFactBox.innerText = getRandomFunFact();
     }
+    // --- Check Sign In and Start Game ---
+    function checkSignInAndStartGame(mode) {
+        if (!currentUser) {
+            // Show sign-in prompt modal
+            showSignInPromptModal(mode);
+        } else {
+            // User is already signed in, start game directly
+            exitBtn.style.display = 'block';
+            startGame(mode);
+        }
+    }
+
+    // --- Sign In Prompt Modal ---
+    function showSignInPromptModal(gameMode) {
+        // Create modal if it doesn't exist
+        let signInModal = document.getElementById('signin-prompt-modal');
+        if (!signInModal) {
+            signInModal = document.createElement('div');
+            signInModal.id = 'signin-prompt-modal';
+            signInModal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                z-index: 10000;
+                background: rgba(30,32,40,0.97);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-direction: column;
+            `;
+            
+            signInModal.innerHTML = `
+                <div style="background:#fff;border-radius:18px;box-shadow:0 2px 18px #ffd70044;padding:2rem 2.5rem;max-width:95vw;width:400px;text-align:center;position:relative;">
+                    <h2 style="color:#222;font-family:'Montserrat-Bold',Arial,sans-serif;margin-bottom:1.2rem;">Sign In to Play</h2>
+                    <p style="color:#666;margin-bottom:1.5rem;line-height:1.5;">Sign in with your Google account to save your scores and compete on the leaderboard!</p>
+                    <div id="signin-prompt-buttons" style="display:flex;flex-direction:column;gap:1rem;margin-bottom:1.5rem;">
+                        <button id="signin-prompt-google-btn" class="comic-button" style="background:#4285f4;color:#fff;border:none;padding:0.8rem 1.5rem;border-radius:8px;font-size:1.1rem;cursor:pointer;">
+                            <img src="https://developers.google.com/identity/images/g-logo.png" style="width:20px;height:20px;vertical-align:middle;margin-right:0.5rem;">Sign in with Google
+                        </button>
+                        <button id="signin-prompt-skip-btn" class="comic-button" style="background:#666;color:#fff;border:none;padding:0.8rem 1.5rem;border-radius:8px;font-size:1.1rem;cursor:pointer;">
+                            Play Without Signing In
+                        </button>
+                    </div>
+                    <button id="signin-prompt-close-btn" style="background:none;border:none;color:#999;cursor:pointer;font-size:1rem;">Close</button>
+                </div>
+            `;
+            
+            document.body.appendChild(signInModal);
+            
+            // Add event listeners
+            const googleBtn = document.getElementById('signin-prompt-google-btn');
+            const skipBtn = document.getElementById('signin-prompt-skip-btn');
+            const closeBtn = document.getElementById('signin-prompt-close-btn');
+            
+            googleBtn.onclick = () => {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                auth.signInWithPopup(provider).then(result => {
+                    console.log('✅ Google sign-in successful:', result.user.displayName);
+                    currentUser = result.user;
+                    hideSignInPromptModal();
+                    // Start game after successful sign-in
+                    exitBtn.style.display = 'block';
+                    startGame(gameMode);
+                }).catch(error => {
+                    console.error('❌ Google sign-in failed:', error);
+                    alert('Failed to sign in with Google. Please try again.');
+                });
+            };
+            
+            skipBtn.onclick = () => {
+                hideSignInPromptModal();
+                // Start game without sign-in
+                exitBtn.style.display = 'block';
+                startGame(gameMode);
+            };
+            
+            closeBtn.onclick = hideSignInPromptModal;
+        }
+        
+        signInModal.style.display = 'flex';
+    }
+    
+    function hideSignInPromptModal() {
+        const signInModal = document.getElementById('signin-prompt-modal');
+        if (signInModal) {
+            signInModal.style.display = 'none';
+        }
+    }
+
     // --- Start Game ---
     window.startGame = function(mode) {
         ensureUserInteraction();
@@ -2034,12 +2125,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Attach event listeners for game start
     soloBtn.onclick = () => {
-        exitBtn.style.display = 'block';
-        startGame('solo');
+        checkSignInAndStartGame('solo');
     };
     teamsBtn.onclick = () => {
-        exitBtn.style.display = 'block';
-        startGame('teams');
+        checkSignInAndStartGame('teams');
     };
     nextBtn.onclick = () => {
         // Hide explanation first if it's visible
@@ -2068,8 +2157,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
     playAgainBtn.onclick = () => {
-        if (gameMode === 'solo') startGame('solo');
-        else startGame('teams');
+        if (gameMode === 'solo') checkSignInAndStartGame('solo');
+        else checkSignInAndStartGame('teams');
     };
     downloadBtn.onclick = downloadAnswers;
     const startNextTurnBtn = document.getElementById('start-next-turn-btn');
@@ -2462,10 +2551,28 @@ function updateUserInfoUI() {
     userInfoDiv.innerHTML = `<img src="${currentUser.photoURL}" style="width:32px;height:32px;border-radius:50%;vertical-align:middle;margin-right:0.5em;">${currentUser.displayName}`;
     googleSigninBtn.style.display = 'none';
     googleSignoutBtn.style.display = 'inline-block';
+    
+    // Update main menu sign-in status
+    const statusText = document.getElementById('signin-status-text');
+    const mainSigninBtn = document.getElementById('main-signin-btn');
+    const mainSignoutBtn = document.getElementById('main-signout-btn');
+    
+    if (statusText) statusText.textContent = `Signed in as ${currentUser.displayName}`;
+    if (mainSigninBtn) mainSigninBtn.style.display = 'none';
+    if (mainSignoutBtn) mainSignoutBtn.style.display = 'inline-block';
   } else {
     userInfoDiv.innerHTML = '';
     googleSigninBtn.style.display = 'inline-block';
     googleSignoutBtn.style.display = 'none';
+    
+    // Update main menu sign-in status
+    const statusText = document.getElementById('signin-status-text');
+    const mainSigninBtn = document.getElementById('main-signin-btn');
+    const mainSignoutBtn = document.getElementById('main-signout-btn');
+    
+    if (statusText) statusText.textContent = 'Not signed in - Your scores won\'t be saved';
+    if (mainSigninBtn) mainSigninBtn.style.display = 'inline-block';
+    if (mainSignoutBtn) mainSignoutBtn.style.display = 'none';
   }
 }
 googleSigninBtn.onclick = function() {
@@ -2509,6 +2616,44 @@ googleSignoutBtn.onclick = function() {
     console.error('Error signing out:', error);
   });
 };
+
+// Main menu sign-in button
+const mainSigninBtn = document.getElementById('main-signin-btn');
+if (mainSigninBtn) {
+  mainSigninBtn.onclick = function() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).then(result => {
+      console.log('✅ Google sign-in successful:', result.user.displayName);
+      currentUser = result.user;
+      updateUserInfoUI();
+    }).catch(error => {
+      console.error('❌ Google sign-in failed:', error);
+      alert('Failed to sign in with Google. Please try again.');
+    });
+  };
+}
+
+// Main menu sign-out button
+const mainSignoutBtn = document.getElementById('main-signout-btn');
+if (mainSignoutBtn) {
+  mainSignoutBtn.onclick = function() {
+    auth.signOut().then(() => {
+      currentUser = null;
+      updateUserInfoUI();
+    }).catch(error => {
+      console.error('Error signing out:', error);
+    });
+  };
+}
+
+// View leaderboard button
+const viewLeaderboardBtn = document.getElementById('view-leaderboard-btn');
+if (viewLeaderboardBtn) {
+  viewLeaderboardBtn.onclick = function() {
+    showLeaderboardModal();
+    fetchAndDisplayLeaderboard();
+  };
+}
 auth.onAuthStateChanged(user => {
   currentUser = user;
   updateUserInfoUI();

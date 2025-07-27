@@ -96,6 +96,20 @@
             <input type="checkbox" id="time-attack-checkbox" style="width: 20px; height: 20px; cursor: not-allowed; opacity: 0.5;" disabled>
         </div>
 
+        <!-- Sign-in status section -->
+        <div id="signin-status-container" style="margin-bottom: 1.2rem; text-align: center; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 12px; border: 2px solid rgba(255,215,0,0.3);">
+            <div id="signin-status-display" style="margin-bottom: 0.8rem;">
+                <p id="signin-status-text" style="font-family: 'Montserrat-Regular', Arial, sans-serif; font-size: 1rem; color: #ffd700; margin: 0;">Not signed in - Your scores won't be saved</p>
+            </div>
+            <div id="signin-buttons" style="display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap;">
+                <button id="main-signin-btn" class="comic-button" style="background: #4285f4; color: #fff; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-size: 1rem; cursor: pointer;">
+                    <img src="https://developers.google.com/identity/images/g-logo.png" style="width:16px;height:16px;vertical-align:middle;margin-right:0.4rem;">Sign In
+                </button>
+                <button id="main-signout-btn" class="comic-button" style="background: #666; color: #fff; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-size: 1rem; cursor: pointer; display: none;">Sign Out</button>
+                <button id="view-leaderboard-btn" class="comic-button" style="background: #388e3c; color: #fff; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-size: 1rem; cursor: pointer;">View Leaderboard</button>
+            </div>
+        </div>
+
         <div class="buttons">
             <button id="solo" class="comic-button" aria-label="Start solo player mode">Solo Player</button>
             <button id="teams" class="comic-button" aria-label="Start two teams mode">Two Teams</button>
