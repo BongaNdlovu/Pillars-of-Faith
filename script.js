@@ -2590,19 +2590,19 @@ function fetchAndDisplayLeaderboard() {
       let foundCurrent = false;
       let currentUserRank = null;
       
-      snapshot.forEach((doc, idx) => {
+      let rank = 1;
+      snapshot.forEach((doc) => {
         const d = doc.data();
         console.log('Processing leaderboard entry:', { 
-          idx, 
-          idxType: typeof idx, 
+          rank, 
+          rankType: typeof rank, 
           docId: doc.id, 
           data: d,
           hasScore: 'score' in d,
           hasUid: 'uid' in d,
           hasDisplayName: 'displayName' in d
         });
-        const rank = idx + 1;
-        console.log('Calculated rank:', { rank, rankType: typeof rank });
+        
         const isCurrent = currentUser && d.uid === currentUser.uid;
         
         if (isCurrent) {
@@ -2617,20 +2617,19 @@ function fetchAndDisplayLeaderboard() {
         const time = parseInt(d.time, 10) || 0;
         const date = d.date && d.date.toDate ? d.date.toDate().toLocaleDateString() : 'Unknown';
         
-        // Ensure rank is a valid number
-        const safeRank = isNaN(rank) ? '?' : rank;
-        
-        console.log('Displaying leaderboard entry:', { rank: safeRank, displayName, score, time, date, isCurrent });
+        console.log('Displaying leaderboard entry:', { rank, displayName, score, time, date, isCurrent });
         
         leaderboardTableBody.innerHTML += `
           <tr${isCurrent ? ' style="background:#ffd70022;"' : ''}>
-            <td>${safeRank}</td>
+            <td>${rank}</td>
             <td><img src="${photoURL}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:0.3em;">${displayName}</td>
             <td>${score}</td>
             <td>${formatLeaderboardTime(time)}</td>
             <td>${date}</td>
           </tr>
         `;
+        
+        rank++; // Increment rank for next entry
       });
       
       // If current user is not in top 10, fetch their rank separately
@@ -2641,21 +2640,21 @@ function fetchAndDisplayLeaderboard() {
           .get()
           .then(allSnapshot => {
             let userRank = null;
-            allSnapshot.forEach((doc, idx) => {
+            let rank = 1;
+            allSnapshot.forEach((doc) => {
               if (doc.data().uid === currentUser.uid) {
-                userRank = idx + 1;
+                userRank = rank;
               }
+              rank++;
             });
             
             if (userRank) {
               console.log(`Current user rank: ${userRank}`);
-              // Ensure userRank is a valid number
-              const safeUserRank = isNaN(userRank) ? '?' : userRank;
               // Optionally display user's rank if not in top 10
               const userRankRow = document.createElement('tr');
               userRankRow.style.cssText = 'background:#ffd70022; font-weight:bold;';
               userRankRow.innerHTML = `
-                <td>${safeUserRank}</td>
+                <td>${userRank}</td>
                 <td><img src="${currentUser.photoURL}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:0.3em;">${currentUser.displayName} (You)</td>
                 <td>Your Score</td>
                 <td>Your Time</td>
