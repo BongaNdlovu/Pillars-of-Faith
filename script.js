@@ -2000,28 +2000,7 @@ document.addEventListener('DOMContentLoaded', () => {
             100% { opacity: 0.3; transform: scale(1); }
         }
         
-        @keyframes leaderboard-glitch {
-            0%, 90%, 100% { 
-                transform: translateX(0);
-                opacity: 0;
-            }
-            10%, 20% { 
-                transform: translateX(-2px);
-                opacity: 0.8;
-            }
-            30%, 40% { 
-                transform: translateX(2px);
-                opacity: 0.6;
-            }
-            50%, 60% { 
-                transform: translateX(-1px);
-                opacity: 0.4;
-            }
-            70%, 80% { 
-                transform: translateX(1px);
-                opacity: 0.2;
-            }
-        }
+
         
         @keyframes row-fade-in {
             0% { 
