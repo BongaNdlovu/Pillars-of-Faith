@@ -2819,30 +2819,30 @@ function fetchAndDisplayLeaderboard() {
         // Add special styling for top 3 positions and current user
         let rankStyle = '';
         let rowStyle = '';
-        let textColor = '#b8c5d6';
+        let textColor = '#d1d8e0';
         
         if (rank === 1) {
-          rankStyle = 'background:linear-gradient(45deg,#ffd700,#ffed4e);color:#333;box-shadow:0 0 15px rgba(255,215,0,0.5);';
-          rowStyle = 'background:linear-gradient(90deg,rgba(255,215,0,0.1),rgba(255,215,0,0.05));';
+          rankStyle = 'background:linear-gradient(45deg,#ffd700,#ffed4e);color:#333;box-shadow:0 0 15px rgba(255,215,0,0.6);';
+          rowStyle = 'background:linear-gradient(90deg,rgba(255,215,0,0.15),rgba(255,215,0,0.08));';
           textColor = '#2c3e50';
         } else if (rank === 2) {
-          rankStyle = 'background:linear-gradient(45deg,#c0c0c0,#e0e0e0);color:#333;box-shadow:0 0 10px rgba(192,192,192,0.5);';
-          rowStyle = 'background:linear-gradient(90deg,rgba(192,192,192,0.1),rgba(192,192,192,0.05));';
+          rankStyle = 'background:linear-gradient(45deg,#c0c0c0,#e0e0e0);color:#333;box-shadow:0 0 10px rgba(192,192,192,0.6);';
+          rowStyle = 'background:linear-gradient(90deg,rgba(192,192,192,0.15),rgba(192,192,192,0.08));';
           textColor = '#2c3e50';
         } else if (rank === 3) {
-          rankStyle = 'background:linear-gradient(45deg,#cd7f32,#daa520);color:#333;box-shadow:0 0 10px rgba(205,127,50,0.5);';
-          rowStyle = 'background:linear-gradient(90deg,rgba(205,127,50,0.1),rgba(205,127,50,0.05));';
+          rankStyle = 'background:linear-gradient(45deg,#cd7f32,#daa520);color:#333;box-shadow:0 0 10px rgba(205,127,50,0.6);';
+          rowStyle = 'background:linear-gradient(90deg,rgba(205,127,50,0.15),rgba(205,127,50,0.08));';
           textColor = '#2c3e50';
         } else if (isCurrent) {
-          rowStyle = 'background:linear-gradient(90deg,rgba(255,215,0,0.2),rgba(255,215,0,0.1));border:2px solid rgba(255,215,0,0.5);';
+          rowStyle = 'background:linear-gradient(90deg,rgba(255,215,0,0.25),rgba(255,215,0,0.15));border:2px solid rgba(255,215,0,0.6);';
           textColor = '#ffd700';
         } else {
-          rowStyle = 'border-bottom:1px solid rgba(255,215,0,0.1);';
+          rowStyle = 'border-bottom:1px solid rgba(255,215,0,0.15);background:rgba(255,255,255,0.03);';
         }
         
         // Add hover effect and transition
         const rowHTML = `
-          <tr style="${rowStyle};transition:all 0.3s ease;cursor:pointer;" onmouseover="this.style.background='rgba(255,215,0,0.1)'" onmouseout="this.style.background='${rowStyle.replace(/background:[^;]+;/, '')}'">
+          <tr style="${rowStyle};transition:all 0.3s ease;cursor:pointer;" onmouseover="this.style.background='rgba(255,215,0,0.15)'" onmouseout="this.style.background='${rowStyle.replace(/background:[^;]+;/, '')}'">
             <td style="padding:1rem 0.8rem;text-align:center;font-weight:bold;${rankStyle};border-radius:8px;font-size:1.1rem;font-family:'Montserrat-Bold',Arial,sans-serif;">${rank}</td>
             <td style="padding:1rem 0.8rem;text-align:left;color:${textColor};font-family:'Montserrat-Regular',Arial,sans-serif;font-size:1rem;">
               <img src="${photoURL}" style="width:28px;height:28px;border-radius:50%;vertical-align:middle;margin-right:0.5em;border:2px solid rgba(255,215,0,0.3);box-shadow:0 2px 8px rgba(0,0,0,0.3);">${displayName}
