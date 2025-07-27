@@ -1984,7 +1984,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize mobile enhancements
     enhanceMobileTouch();
     
-    // Add CSS animation for fadeInOut
+    // Add CSS animations for enhanced UI
     const style = document.createElement('style');
     style.textContent = `
         @keyframes fadeInOut {
@@ -1992,6 +1992,103 @@ document.addEventListener('DOMContentLoaded', () => {
             20% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.1); }
             80% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
             100% { opacity: 0; transform: translateX(-50%) translateY(20px) scale(0.9); }
+        }
+        
+        @keyframes leaderboard-glow {
+            0% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.02); }
+            100% { opacity: 0.3; transform: scale(1); }
+        }
+        
+        @keyframes leaderboard-glitch {
+            0%, 90%, 100% { 
+                transform: translateX(0);
+                opacity: 0;
+            }
+            10%, 20% { 
+                transform: translateX(-2px);
+                opacity: 0.8;
+            }
+            30%, 40% { 
+                transform: translateX(2px);
+                opacity: 0.6;
+            }
+            50%, 60% { 
+                transform: translateX(-1px);
+                opacity: 0.4;
+            }
+            70%, 80% { 
+                transform: translateX(1px);
+                opacity: 0.2;
+            }
+        }
+        
+        @keyframes row-fade-in {
+            0% { 
+                opacity: 0; 
+                transform: translateX(-20px);
+                background: rgba(255,215,0,0.1);
+            }
+            100% { 
+                opacity: 1; 
+                transform: translateX(0);
+                background: transparent;
+            }
+        }
+        
+        @keyframes rank-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .leaderboard-row {
+            animation: row-fade-in 0.6s ease-out;
+            transition: all 0.3s ease;
+        }
+        
+        .leaderboard-row:hover {
+            background: rgba(255,215,0,0.1) !important;
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(255,215,0,0.2);
+        }
+        
+        .rank-1, .rank-2, .rank-3 {
+            animation: rank-pulse 2s ease-in-out infinite;
+        }
+        
+        .current-user-row {
+            background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,215,0,0.1)) !important;
+            border-left: 4px solid #ffd700 !important;
+            box-shadow: 0 2px 8px rgba(255,215,0,0.3) !important;
+        }
+        
+        .current-user-row:hover {
+            background: linear-gradient(135deg, rgba(255,215,0,0.3), rgba(255,215,0,0.2)) !important;
+        }
+        
+        /* Button hover effects */
+        #google-signin-btn:hover, #google-signout-btn:hover, #close-leaderboard-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        /* Enhanced scrollbar */
+        #leaderboard-table-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        #leaderboard-table-container::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.3);
+            border-radius: 4px;
+        }
+        
+        #leaderboard-table-container::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #ffd700, #ff4b5c);
+            border-radius: 4px;
+        }
+        
+        #leaderboard-table-container::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #ff4b5c, #ffd700);
         }
     `;
     document.head.appendChild(style);
@@ -2539,6 +2636,18 @@ const closeLeaderboardBtn = document.getElementById('close-leaderboard-btn');
 function showLeaderboardModal() {
   leaderboardModal.style.display = 'flex';
   updateUserInfoUI();
+  
+  // Add entrance animation
+  const container = document.getElementById('leaderboard-container');
+  if (container) {
+    container.style.transform = 'scale(0.9)';
+    container.style.opacity = '0';
+    
+    setTimeout(() => {
+      container.style.transform = 'scale(1)';
+      container.style.opacity = '1';
+    }, 50);
+  }
 }
 function hideLeaderboardModal() {
   leaderboardModal.style.display = 'none';
@@ -2766,19 +2875,29 @@ function fetchAndDisplayLeaderboard() {
         
         // Add special styling for top 3 positions
         let rankStyle = '';
-        if (rank === 1) rankStyle = 'background:linear-gradient(45deg,#ffd700,#ffed4e);color:#333;';
-        else if (rank === 2) rankStyle = 'background:linear-gradient(45deg,#c0c0c0,#e0e0e0);color:#333;';
-        else if (rank === 3) rankStyle = 'background:linear-gradient(45deg,#cd7f32,#daa520);color:#333;';
+        let rankClass = '';
+        if (rank === 1) {
+          rankStyle = 'background:linear-gradient(45deg,#ffd700,#ffed4e);color:#333;box-shadow:0 2px 8px rgba(255,215,0,0.4);';
+          rankClass = 'rank-1';
+        } else if (rank === 2) {
+          rankStyle = 'background:linear-gradient(45deg,#c0c0c0,#e0e0e0);color:#333;box-shadow:0 2px 8px rgba(192,192,192,0.4);';
+          rankClass = 'rank-2';
+        } else if (rank === 3) {
+          rankStyle = 'background:linear-gradient(45deg,#cd7f32,#daa520);color:#333;box-shadow:0 2px 8px rgba(205,127,50,0.4);';
+          rankClass = 'rank-3';
+        }
+        
+        const rowClass = isCurrent ? 'leaderboard-row current-user-row' : 'leaderboard-row';
         
         leaderboardTableBody.innerHTML += `
-          <tr${isCurrent ? ' style="background:#ffd70022;font-weight:bold;"' : ' style="border-bottom:1px solid #eee;"'}>
-            <td style="padding:0.6rem 0.5rem;text-align:center;font-weight:bold;${rankStyle}">${rank}</td>
-            <td style="padding:0.6rem 0.5rem;text-align:left;">
-              <img src="${photoURL}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:0.3em;">${displayName}
+          <tr class="${rowClass}" style="border-bottom:1px solid rgba(0,0,0,0.1);transition:all 0.3s ease;">
+            <td style="padding:0.8rem 0.6rem;text-align:center;font-weight:bold;${rankStyle}border-radius:8px;margin:0.2rem;" class="${rankClass}">${rank}</td>
+            <td style="padding:0.8rem 0.6rem;text-align:left;font-weight:500;">
+              <img src="${photoURL}" style="width:28px;height:28px;border-radius:50%;vertical-align:middle;margin-right:0.5em;border:2px solid rgba(255,215,0,0.3);">${displayName}
             </td>
-            <td style="padding:0.6rem 0.5rem;text-align:center;font-weight:bold;">${score}</td>
-            <td style="padding:0.6rem 0.5rem;text-align:center;">${formatLeaderboardTime(time)}</td>
-            <td style="padding:0.6rem 0.5rem;text-align:center;">${date}</td>
+            <td style="padding:0.8rem 0.6rem;text-align:center;font-weight:bold;color:#2c3e50;font-size:1.1rem;">${score}</td>
+            <td style="padding:0.8rem 0.6rem;text-align:center;color:#555;font-family:monospace;font-size:1rem;">${formatLeaderboardTime(time)}</td>
+            <td style="padding:0.8rem 0.6rem;text-align:center;color:#666;font-size:0.9rem;">${date}</td>
           </tr>
         `;
         
@@ -2805,15 +2924,16 @@ function fetchAndDisplayLeaderboard() {
               console.log(`Current user rank: ${userRank}`);
               // Optionally display user's rank if not in top 10
               const userRankRow = document.createElement('tr');
-              userRankRow.style.cssText = 'background:#ffd70022; font-weight:bold;';
+              userRankRow.className = 'leaderboard-row current-user-row';
+              userRankRow.style.cssText = 'border-bottom:1px solid rgba(0,0,0,0.1);transition:all 0.3s ease;';
               userRankRow.innerHTML = `
-                <td style="padding:0.6rem 0.5rem;text-align:center;font-weight:bold;">${userRank}</td>
-                <td style="padding:0.6rem 0.5rem;text-align:left;">
-                  <img src="${currentUser.photoURL}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:0.3em;">${currentUser.displayName} (You)
+                <td style="padding:0.8rem 0.6rem;text-align:center;font-weight:bold;background:linear-gradient(45deg,#ffd700,#ffed4e);color:#333;border-radius:8px;margin:0.2rem;box-shadow:0 2px 8px rgba(255,215,0,0.4);">${userRank}</td>
+                <td style="padding:0.8rem 0.6rem;text-align:left;font-weight:500;">
+                  <img src="${currentUser.photoURL}" style="width:28px;height:28px;border-radius:50%;vertical-align:middle;margin-right:0.5em;border:2px solid rgba(255,215,0,0.3);">${currentUser.displayName} (You)
                 </td>
-                <td style="padding:0.6rem 0.5rem;text-align:center;font-weight:bold;">Your Score</td>
-                <td style="padding:0.6rem 0.5rem;text-align:center;">Your Time</td>
-                <td style="padding:0.6rem 0.5rem;text-align:center;">Today</td>
+                <td style="padding:0.8rem 0.6rem;text-align:center;font-weight:bold;color:#2c3e50;font-size:1.1rem;">Your Score</td>
+                <td style="padding:0.8rem 0.6rem;text-align:center;color:#555;font-family:monospace;font-size:1rem;">Your Time</td>
+                <td style="padding:0.8rem 0.6rem;text-align:center;color:#666;font-size:0.9rem;">Today</td>
               `;
               leaderboardTableBody.appendChild(userRankRow);
             }
