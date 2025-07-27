@@ -240,9 +240,9 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <!-- Leaderboard Modal -->
     <div id="leaderboard-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:10000;background:rgba(30,32,40,0.97);align-items:center;justify-content:center;flex-direction:column;">
-      <div style="background:#fff;border-radius:18px;box-shadow:0 2px 18px #ffd70044;padding:2rem 2.5rem;max-width:95vw;width:400px;text-align:center;position:relative;">
-        <h2 style="color:#222;font-family:'Montserrat-Bold',Arial,sans-serif;margin-bottom:1.2rem;">Global Leaderboard</h2>
-        <div id="auth-section">
+      <div style="background:#fff;border-radius:18px;box-shadow:0 2px 18px #ffd70044;padding:2rem 2.5rem;max-width:95vw;width:800px;max-height:90vh;text-align:center;position:relative;display:flex;flex-direction:column;">
+        <h2 style="color:#222;font-family:'Montserrat-Bold',Arial,sans-serif;margin-bottom:1.2rem;">Global Leaderboard - Top 100</h2>
+        <div id="auth-section" style="margin-bottom:1rem;">
           <button id="google-signin-btn" style="margin-bottom:1rem;">Sign in with Google</button>
           <button id="google-signout-btn" style="margin-bottom:1rem;display:none;">Sign out</button>
           <div id="user-info" style="margin-bottom:1rem;"></div>
@@ -250,13 +250,21 @@
         <label style="display:flex;align-items:center;justify-content:center;gap:0.5em;margin-bottom:1rem;">
           <input type="checkbox" id="optout-leaderboard" style="width:18px;height:18px;"> Opt out of leaderboard
         </label>
-        <div id="leaderboard-table-container">
-          <table id="leaderboard-table" style="width:100%;border-collapse:collapse;margin-bottom:1rem;">
-            <thead><tr><th>Rank</th><th>Player</th><th>Score</th><th>Time</th><th>Date</th></tr></thead>
+        <div id="leaderboard-table-container" style="flex:1;overflow-y:auto;max-height:60vh;border:1px solid #ddd;border-radius:8px;">
+          <table id="leaderboard-table" style="width:100%;border-collapse:collapse;">
+            <thead style="position:sticky;top:0;background:#f5f5f5;z-index:1;">
+              <tr>
+                <th style="padding:0.8rem 0.5rem;text-align:center;border-bottom:2px solid #ddd;font-weight:bold;">Rank</th>
+                <th style="padding:0.8rem 0.5rem;text-align:left;border-bottom:2px solid #ddd;font-weight:bold;">Player</th>
+                <th style="padding:0.8rem 0.5rem;text-align:center;border-bottom:2px solid #ddd;font-weight:bold;">Score</th>
+                <th style="padding:0.8rem 0.5rem;text-align:center;border-bottom:2px solid #ddd;font-weight:bold;">Time</th>
+                <th style="padding:0.8rem 0.5rem;text-align:center;border-bottom:2px solid #ddd;font-weight:bold;">Date</th>
+              </tr>
+            </thead>
             <tbody></tbody>
           </table>
         </div>
-        <button id="close-leaderboard-btn" style="margin-top:0.5rem;">Close</button>
+        <button id="close-leaderboard-btn" style="margin-top:1rem;">Close</button>
       </div>
     </div>
 </body>

@@ -2707,7 +2707,7 @@ function submitToLeaderboard(score, time) {
     });
 }
 
-// Fetch and display Top 10 leaderboard
+// Fetch and display Top 100 leaderboard
 function fetchAndDisplayLeaderboard() {
   try {
     console.log('Fetching leaderboard data...');
@@ -2725,7 +2725,7 @@ function fetchAndDisplayLeaderboard() {
     console.log('Executing Firebase query...');
     db.collection('leaderboard')
       .orderBy('score', 'desc')
-      .limit(10)
+      .limit(100)
       .get()
     .then(snapshot => {
       console.log('Leaderboard data received:', snapshot.docs.map(doc => doc.data()));
@@ -2764,20 +2764,28 @@ function fetchAndDisplayLeaderboard() {
         
         console.log('Displaying leaderboard entry:', { rank, displayName, score, time, date, isCurrent });
         
+        // Add special styling for top 3 positions
+        let rankStyle = '';
+        if (rank === 1) rankStyle = 'background:linear-gradient(45deg,#ffd700,#ffed4e);color:#333;';
+        else if (rank === 2) rankStyle = 'background:linear-gradient(45deg,#c0c0c0,#e0e0e0);color:#333;';
+        else if (rank === 3) rankStyle = 'background:linear-gradient(45deg,#cd7f32,#daa520);color:#333;';
+        
         leaderboardTableBody.innerHTML += `
-          <tr${isCurrent ? ' style="background:#ffd70022;"' : ''}>
-            <td>${rank}</td>
-            <td><img src="${photoURL}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:0.3em;">${displayName}</td>
-            <td>${score}</td>
-            <td>${formatLeaderboardTime(time)}</td>
-            <td>${date}</td>
+          <tr${isCurrent ? ' style="background:#ffd70022;font-weight:bold;"' : ' style="border-bottom:1px solid #eee;"'}>
+            <td style="padding:0.6rem 0.5rem;text-align:center;font-weight:bold;${rankStyle}">${rank}</td>
+            <td style="padding:0.6rem 0.5rem;text-align:left;">
+              <img src="${photoURL}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:0.3em;">${displayName}
+            </td>
+            <td style="padding:0.6rem 0.5rem;text-align:center;font-weight:bold;">${score}</td>
+            <td style="padding:0.6rem 0.5rem;text-align:center;">${formatLeaderboardTime(time)}</td>
+            <td style="padding:0.6rem 0.5rem;text-align:center;">${date}</td>
           </tr>
         `;
         
         rank++; // Increment rank for next entry
       });
       
-      // If current user is not in top 10, fetch their rank separately
+      // If current user is not in top 100, fetch their rank separately
       if (!foundCurrent && currentUser) {
         db.collection('leaderboard')
           .orderBy('score', 'desc')
@@ -2799,11 +2807,13 @@ function fetchAndDisplayLeaderboard() {
               const userRankRow = document.createElement('tr');
               userRankRow.style.cssText = 'background:#ffd70022; font-weight:bold;';
               userRankRow.innerHTML = `
-                <td>${userRank}</td>
-                <td><img src="${currentUser.photoURL}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:0.3em;">${currentUser.displayName} (You)</td>
-                <td>Your Score</td>
-                <td>Your Time</td>
-                <td>Today</td>
+                <td style="padding:0.6rem 0.5rem;text-align:center;font-weight:bold;">${userRank}</td>
+                <td style="padding:0.6rem 0.5rem;text-align:left;">
+                  <img src="${currentUser.photoURL}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:0.3em;">${currentUser.displayName} (You)
+                </td>
+                <td style="padding:0.6rem 0.5rem;text-align:center;font-weight:bold;">Your Score</td>
+                <td style="padding:0.6rem 0.5rem;text-align:center;">Your Time</td>
+                <td style="padding:0.6rem 0.5rem;text-align:center;">Today</td>
               `;
               leaderboardTableBody.appendChild(userRankRow);
             }
