@@ -240,46 +240,37 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <!-- Leaderboard Modal -->
     <div id="leaderboard-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:10000;background:linear-gradient(135deg,rgba(30,32,40,0.98),rgba(20,22,30,0.99));align-items:center;justify-content:center;flex-direction:column;backdrop-filter:blur(10px);">
-      <div id="leaderboard-container" style="background:linear-gradient(145deg,rgba(255,255,255,0.95),rgba(245,245,245,0.9));border-radius:20px;box-shadow:0 8px 32px rgba(0,0,0,0.3),0 0 0 1px rgba(255,215,0,0.2),inset 0 1px 0 rgba(255,255,255,0.8);padding:2.5rem 3rem;max-width:95vw;width:900px;max-height:90vh;text-align:center;position:relative;display:flex;flex-direction:column;transform:scale(0.9);opacity:0;transition:all 0.4s cubic-bezier(0.175,0.885,0.32,1.275);">
-        <div style="position:absolute;top:-2px;left:-2px;right:-2px;bottom:-2px;background:linear-gradient(45deg,#ffd700,#ff4b5c,#4b8cff,#ffd700);border-radius:20px;z-index:-1;opacity:0.3;animation:leaderboard-glow 3s ease-in-out infinite alternate;"></div>
+      <div style="background:linear-gradient(145deg,#1a1a2e,#16213e);border-radius:24px;box-shadow:0 8px 32px rgba(255,215,0,0.3),0 0 0 1px rgba(255,215,0,0.1);padding:2.5rem 3rem;max-width:95vw;width:900px;max-height:90vh;text-align:center;position:relative;display:flex;flex-direction:column;border:2px solid rgba(255,215,0,0.2);">
+        <div style="position:absolute;top:-2px;left:50%;transform:translateX(-50%);width:60%;height:4px;background:linear-gradient(90deg,transparent,#ffd700,transparent);border-radius:2px;"></div>
+        <h2 style="color:#ffd700;font-family:'Montserrat-Bold',Arial,sans-serif;margin-bottom:1.5rem;font-size:2.2rem;text-shadow:0 0 20px rgba(255,215,0,0.5);letter-spacing:1px;">🏆 Global Leaderboard</h2>
+        <p style="color:#b8c5d6;font-size:1rem;margin-bottom:2rem;font-family:'Montserrat-Regular',Arial,sans-serif;">Top 100 Champions of Faith</p>
         
-        <h2 id="leaderboard-title" style="color:#1a1a1a;font-family:'Montserrat-Bold',Arial,sans-serif;font-size:2.2rem;margin-bottom:1.5rem;text-shadow:0 2px 4px rgba(0,0,0,0.1);position:relative;letter-spacing:1px;">
-          <span style="position:relative;z-index:1;">Global Leaderboard</span>
-          <span style="display:block;font-size:1rem;color:#666;font-weight:normal;margin-top:0.3rem;">Top 100 Champions</span>
-        </h2>
-        
-        <div id="auth-section" style="margin-bottom:1.5rem;padding:1rem;background:rgba(255,255,255,0.7);border-radius:12px;border:1px solid rgba(255,215,0,0.3);">
-          <button id="google-signin-btn" class="comic-button" style="margin-bottom:0.8rem;background:linear-gradient(135deg,#4285f4,#3367d6);color:#fff;border:none;padding:0.8rem 1.5rem;border-radius:10px;font-size:1rem;cursor:pointer;box-shadow:0 4px 15px rgba(66,133,244,0.3);transition:all 0.3s ease;">
-            <img src="https://developers.google.com/identity/images/g-logo.png" style="width:18px;height:18px;vertical-align:middle;margin-right:0.5rem;">Sign in with Google
-          </button>
-          <button id="google-signout-btn" class="comic-button" style="margin-bottom:0.8rem;background:linear-gradient(135deg,#666,#555);color:#fff;border:none;padding:0.8rem 1.5rem;border-radius:10px;font-size:1rem;cursor:pointer;box-shadow:0 4px 15px rgba(102,102,102,0.3);transition:all 0.3s ease;display:none;">Sign out</button>
-          <div id="user-info" style="margin-bottom:0.8rem;font-weight:bold;color:#333;"></div>
+        <div id="auth-section" style="margin-bottom:1.5rem;padding:1rem;background:rgba(255,255,255,0.05);border-radius:12px;border:1px solid rgba(255,215,0,0.2);">
+          <button id="google-signin-btn" style="margin-bottom:1rem;background:linear-gradient(45deg,#4285f4,#34a853);color:#fff;border:none;padding:0.8rem 1.5rem;border-radius:10px;font-size:1rem;cursor:pointer;font-weight:bold;box-shadow:0 4px 15px rgba(66,133,244,0.3);transition:all 0.3s ease;">Sign in with Google</button>
+          <button id="google-signout-btn" style="margin-bottom:1rem;display:none;background:linear-gradient(45deg,#666,#888);color:#fff;border:none;padding:0.8rem 1.5rem;border-radius:10px;font-size:1rem;cursor:pointer;font-weight:bold;box-shadow:0 4px 15px rgba(102,102,102,0.3);transition:all 0.3s ease;">Sign out</button>
+          <div id="user-info" style="margin-bottom:1rem;color:#b8c5d6;font-family:'Montserrat-Regular',Arial,sans-serif;"></div>
         </div>
         
-        <label style="display:flex;align-items:center;justify-content:center;gap:0.5em;margin-bottom:1.5rem;padding:0.8rem;background:rgba(255,255,255,0.6);border-radius:10px;border:1px solid rgba(255,215,0,0.2);">
-          <input type="checkbox" id="optout-leaderboard" style="width:18px;height:18px;accent-color:#ffd700;"> 
-          <span style="color:#555;font-weight:500;">Opt out of leaderboard</span>
+        <label style="display:flex;align-items:center;justify-content:center;gap:0.5em;margin-bottom:1.5rem;color:#b8c5d6;font-family:'Montserrat-Regular',Arial,sans-serif;font-size:0.9rem;">
+          <input type="checkbox" id="optout-leaderboard" style="width:18px;height:18px;accent-color:#ffd700;"> Opt out of leaderboard
         </label>
         
-        <div id="leaderboard-table-container" style="flex:1;overflow-y:auto;max-height:55vh;border:2px solid rgba(255,215,0,0.3);border-radius:15px;background:rgba(255,255,255,0.8);box-shadow:inset 0 2px 10px rgba(0,0,0,0.1);position:relative;">
-          <div style="position:absolute;top:0;left:0;right:0;height:20px;background:linear-gradient(180deg,rgba(255,255,255,0.9),transparent);z-index:2;pointer-events:none;"></div>
-          <div style="position:absolute;bottom:0;left:0;right:0;height:20px;background:linear-gradient(0deg,rgba(255,255,255,0.9),transparent);z-index:2;pointer-events:none;"></div>
-          
-          <table id="leaderboard-table" style="width:100%;border-collapse:separate;border-spacing:0;">
-            <thead style="position:sticky;top:0;background:linear-gradient(135deg,#2c3e50,#34495e);z-index:1;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+        <div id="leaderboard-table-container" style="flex:1;overflow-y:auto;max-height:55vh;border:2px solid rgba(255,215,0,0.3);border-radius:16px;background:rgba(255,255,255,0.02);backdrop-filter:blur(10px);box-shadow:inset 0 2px 10px rgba(0,0,0,0.3);">
+          <table id="leaderboard-table" style="width:100%;border-collapse:collapse;">
+            <thead style="position:sticky;top:0;background:linear-gradient(135deg,#2c3e50,#34495e);z-index:1;border-bottom:2px solid rgba(255,215,0,0.3);">
               <tr>
-                <th style="padding:1rem 0.8rem;text-align:center;font-weight:bold;color:#fff;font-size:1.1rem;text-shadow:0 1px 2px rgba(0,0,0,0.3);border-right:1px solid rgba(255,255,255,0.1);">Rank</th>
-                <th style="padding:1rem 0.8rem;text-align:left;font-weight:bold;color:#fff;font-size:1.1rem;text-shadow:0 1px 2px rgba(0,0,0,0.3);border-right:1px solid rgba(255,255,255,0.1);">Player</th>
-                <th style="padding:1rem 0.8rem;text-align:center;font-weight:bold;color:#fff;font-size:1.1rem;text-shadow:0 1px 2px rgba(0,0,0,0.3);border-right:1px solid rgba(255,255,255,0.1);">Score</th>
-                <th style="padding:1rem 0.8rem;text-align:center;font-weight:bold;color:#fff;font-size:1.1rem;text-shadow:0 1px 2px rgba(0,0,0,0.3);border-right:1px solid rgba(255,255,255,0.1);">Time</th>
-                <th style="padding:1rem 0.8rem;text-align:center;font-weight:bold;color:#fff;font-size:1.1rem;text-shadow:0 1px 2px rgba(0,0,0,0.3);">Date</th>
+                <th style="padding:1rem 0.8rem;text-align:center;font-weight:bold;color:#ffd700;font-family:'Montserrat-Bold',Arial,sans-serif;font-size:1.1rem;text-shadow:0 0 10px rgba(255,215,0,0.3);">Rank</th>
+                <th style="padding:1rem 0.8rem;text-align:left;font-weight:bold;color:#ffd700;font-family:'Montserrat-Bold',Arial,sans-serif;font-size:1.1rem;text-shadow:0 0 10px rgba(255,215,0,0.3);">Player</th>
+                <th style="padding:1rem 0.8rem;text-align:center;font-weight:bold;color:#ffd700;font-family:'Montserrat-Bold',Arial,sans-serif;font-size:1.1rem;text-shadow:0 0 10px rgba(255,215,0,0.3);">Score</th>
+                <th style="padding:1rem 0.8rem;text-align:center;font-weight:bold;color:#ffd700;font-family:'Montserrat-Bold',Arial,sans-serif;font-size:1.1rem;text-shadow:0 0 10px rgba(255,215,0,0.3);">Time</th>
+                <th style="padding:1rem 0.8rem;text-align:center;font-weight:bold;color:#ffd700;font-family:'Montserrat-Bold',Arial,sans-serif;font-size:1.1rem;text-shadow:0 0 10px rgba(255,215,0,0.3);">Date</th>
               </tr>
             </thead>
             <tbody></tbody>
           </table>
         </div>
         
-        <button id="close-leaderboard-btn" class="comic-button" style="margin-top:1.5rem;background:linear-gradient(135deg,#ff4b5c,#e63946);color:#fff;border:none;padding:1rem 2rem;border-radius:12px;font-size:1.1rem;cursor:pointer;box-shadow:0 4px 15px rgba(255,75,92,0.3);transition:all 0.3s ease;font-weight:bold;">Close</button>
+        <button id="close-leaderboard-btn" style="margin-top:1.5rem;background:linear-gradient(45deg,#e74c3c,#c0392b);color:#fff;border:none;padding:0.8rem 2rem;border-radius:10px;font-size:1.1rem;cursor:pointer;font-weight:bold;box-shadow:0 4px 15px rgba(231,76,60,0.3);transition:all 0.3s ease;font-family:'Montserrat-Bold',Arial,sans-serif;">Close</button>
       </div>
     </div>
 </body>
