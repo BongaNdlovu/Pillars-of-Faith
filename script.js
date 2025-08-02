@@ -2036,6 +2036,14 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 selectedBtn.style.transform = '';
             }, 300);
+            
+            // Also highlight the correct answer when user gets it right
+            const correctAnswer = questions[currentQuestionIndex].answer;
+            Array.from(optionsDiv.children).forEach(btn => {
+                if (btn.innerText === correctAnswer) {
+                    btn.classList.add('highlight-correct');
+                }
+            });
         } else {
             playSound(audioWrong);
             shakeElement(selectedBtn);
@@ -2050,17 +2058,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentStreak = 0;
             }
             selectedBtn.classList.add('incorrect');
-                    // Show correct answer with highlight
-        const correctAnswer = questions[currentQuestionIndex].answer;
-        console.log('🎯 Debug: Correct answer should be:', correctAnswer);
-        
-        Array.from(optionsDiv.children).forEach(btn => {
-            console.log('🎯 Debug: Checking button:', btn.innerText, 'against answer:', correctAnswer);
-            if (btn.innerText === correctAnswer) {
-                console.log('🎯 Debug: Adding highlight-correct to button:', btn.innerText);
-                btn.classList.add('correct', 'highlight-correct');
-            }
-        });
+            // Show correct answer with highlight
+            const correctAnswer = questions[currentQuestionIndex].answer;
+            Array.from(optionsDiv.children).forEach(btn => {
+                if (btn.innerText === correctAnswer) {
+                    btn.classList.add('correct', 'highlight-correct');
+                }
+            });
         }
         
         if (gameMode === 'solo') updateSoloStats();
@@ -3626,7 +3630,32 @@ function fetchAndDisplayLeaderboard() {
         const photoURL = d.photoURL || 'https://via.placeholder.com/24x24';
         const score = parseInt(d.score, 10) || 0;
         const time = parseInt(d.time, 10) || 0;
-        const date = d.date && d.date.toDate ? d.date.toDate().toLocaleDateString() : 'Unknown';
+        // Handle different date formats from Firestore
+        let date = 'Unknown';
+        console.log('🔍 Debug: Date data:', d.date, 'Type:', typeof d.date);
+        if (d.date) {
+            if (d.date.toDate && typeof d.date.toDate === 'function') {
+                // Firestore Timestamp
+                date = d.date.toDate().toLocaleDateString();
+                console.log('✅ Using Firestore Timestamp.toDate()');
+            } else if (d.date instanceof Date) {
+                // JavaScript Date object
+                date = d.date.toLocaleDateString();
+                console.log('✅ Using JavaScript Date object');
+            } else if (typeof d.date === 'string') {
+                // String date
+                date = new Date(d.date).toLocaleDateString();
+                console.log('✅ Using string date');
+            } else if (d.date.seconds) {
+                // Firestore Timestamp object
+                date = new Date(d.date.seconds * 1000).toLocaleDateString();
+                console.log('✅ Using Firestore Timestamp.seconds');
+            } else {
+                console.log('❌ Unknown date format:', d.date);
+            }
+        } else {
+            console.log('❌ No date field found');
+        }
         
         console.log('Displaying leaderboard entry:', { rank, displayName, score, time, date, isCurrent });
         
