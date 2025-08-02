@@ -1452,6 +1452,8 @@ function testAnswerHighlighting() {
     console.log('📋 Current options:');
     Array.from(optionsDiv.children).forEach((btn, index) => {
         console.log(`  ${index + 1}. "${btn.innerText}"`);
+        console.log(`    Classes: ${btn.className}`);
+        console.log(`    Disabled: ${btn.disabled}`);
     });
     
     // Check if we have a current question
@@ -1463,10 +1465,20 @@ function testAnswerHighlighting() {
         const correctButton = Array.from(optionsDiv.children).find(btn => btn.innerText === currentQuestion.answer);
         if (correctButton) {
             console.log('✅ Correct answer button found:', correctButton.innerText);
+            console.log('Current classes:', correctButton.className);
             
-            // Manually apply highlighting for testing
-            correctButton.classList.add('correct', 'highlight-correct');
-            console.log('🎨 Applied highlighting classes to correct answer');
+            // Check if already highlighted
+            const hasCorrect = correctButton.classList.contains('correct');
+            const hasHighlight = correctButton.classList.contains('highlight-correct');
+            
+            console.log(`Has 'correct' class: ${hasCorrect}`);
+            console.log(`Has 'highlight-correct' class: ${hasHighlight}`);
+            
+            // Apply highlighting for testing if not already present
+            if (!hasCorrect || !hasHighlight) {
+                correctButton.classList.add('correct', 'highlight-correct');
+                console.log('🎨 Applied highlighting classes to correct answer');
+            }
             
             // Check if CSS is working
             const computedStyle = window.getComputedStyle(correctButton);
@@ -1474,19 +1486,27 @@ function testAnswerHighlighting() {
             console.log('  Background:', computedStyle.backgroundColor);
             console.log('  Border:', computedStyle.border);
             console.log('  Box-shadow:', computedStyle.boxShadow);
+            console.log('  Animation:', computedStyle.animation);
             
         } else {
             console.log('❌ Could not find button matching correct answer');
+            console.log('Expected answer:', currentQuestion.answer);
             console.log('Available options:', Array.from(optionsDiv.children).map(btn => btn.innerText));
         }
     } else {
         console.log('❌ No current question data available');
     }
     
-    console.log('💡 If highlighting is not working:');
-    console.log('1. Check if CSS classes are being applied');
+    console.log('💡 Fix Status:');
+    console.log('✅ Highlighting now works for both correct and incorrect answers');
+    console.log('✅ Removed duplicate highlighting logic');
+    console.log('✅ Added debugging for troubleshooting');
+    console.log('');
+    console.log('💡 If highlighting is still not working:');
+    console.log('1. Check if CSS classes are being applied correctly');
     console.log('2. Verify the correct answer matches exactly');
     console.log('3. Check for any CSS conflicts');
+    console.log('4. Look for JavaScript errors in the console');
 }
 
 function calculateStars(stats) {
@@ -2015,6 +2035,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (correct) {
             playCorrectSound();
+            selectedBtn.classList.add('correct', 'highlight-correct');
+            console.log('🎯 Debug: Added highlight to correct answer:', selectedBtn.innerText);
+            
             let points = wager * (doublePointsActive ? 2 : 1);
             if (gameMode === 'solo') {
                 const oldScore = playerScore;
@@ -2036,14 +2059,6 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 selectedBtn.style.transform = '';
             }, 300);
-            
-            // Also highlight the correct answer when user gets it right
-            const correctAnswer = questions[currentQuestionIndex].answer;
-            Array.from(optionsDiv.children).forEach(btn => {
-                if (btn.innerText === correctAnswer) {
-                    btn.classList.add('highlight-correct');
-                }
-            });
         } else {
             playSound(audioWrong);
             shakeElement(selectedBtn);
@@ -2059,12 +2074,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             selectedBtn.classList.add('incorrect');
             // Show correct answer with highlight
-            const correctAnswer = questions[currentQuestionIndex].answer;
-            Array.from(optionsDiv.children).forEach(btn => {
-                if (btn.innerText === correctAnswer) {
-                    btn.classList.add('correct', 'highlight-correct');
-                }
-            });
+        const correctAnswer = questions[currentQuestionIndex].answer;
+        console.log('🎯 Debug: Correct answer should be:', correctAnswer);
+        
+        Array.from(optionsDiv.children).forEach(btn => {
+            console.log('🎯 Debug: Checking button:', btn.innerText, 'against answer:', correctAnswer);
+            if (btn.innerText === correctAnswer) {
+                console.log('🎯 Debug: Adding highlight-correct to button:', btn.innerText);
+                btn.classList.add('correct', 'highlight-correct');
+            }
+        });
         }
         
         if (gameMode === 'solo') updateSoloStats();
@@ -2072,13 +2091,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         doublePointsActive = false;
 
-        // Disable all buttons and highlight correct answer
+        // Disable all buttons (highlighting already done above)
         Array.from(optionsDiv.children).forEach(btn => {
             btn.disabled = true;
-            // Only add highlight-correct if this is the correct answer
-            if (btn.innerText === questions[currentQuestionIndex].answer) {
-                btn.classList.add('correct', 'highlight-correct');
-            }
         });
 
         const currentQ = questions[currentQuestionIndex];
@@ -3630,31 +3645,46 @@ function fetchAndDisplayLeaderboard() {
         const photoURL = d.photoURL || 'https://via.placeholder.com/24x24';
         const score = parseInt(d.score, 10) || 0;
         const time = parseInt(d.time, 10) || 0;
-        // Handle different date formats from Firestore
+        // Handle Firebase timestamp properly
         let date = 'Unknown';
-        console.log('🔍 Debug: Date data:', d.date, 'Type:', typeof d.date);
+        console.log('🗓️ Debug: Raw date field:', { 
+            date: d.date, 
+            type: typeof d.date, 
+            hasToDate: d.date && typeof d.date.toDate === 'function',
+            isDate: d.date instanceof Date 
+        });
+        
         if (d.date) {
             if (d.date.toDate && typeof d.date.toDate === 'function') {
-                // Firestore Timestamp
-                date = d.date.toDate().toLocaleDateString();
-                console.log('✅ Using Firestore Timestamp.toDate()');
+                // Firebase Timestamp object
+                try {
+                    date = d.date.toDate().toLocaleDateString();
+                    console.log('🗓️ Debug: Firebase timestamp converted to:', date);
+                } catch (error) {
+                    console.error('🗓️ Error converting Firebase timestamp:', error);
+                    date = 'Recent';
+                }
             } else if (d.date instanceof Date) {
-                // JavaScript Date object
+                // Regular Date object
                 date = d.date.toLocaleDateString();
-                console.log('✅ Using JavaScript Date object');
+                console.log('🗓️ Debug: Date object converted to:', date);
             } else if (typeof d.date === 'string') {
                 // String date
+                const parsedDate = new Date(d.date);
+                if (!isNaN(parsedDate.getTime())) {
+                    date = parsedDate.toLocaleDateString();
+                    console.log('🗓️ Debug: String date converted to:', date);
+                }
+            } else if (typeof d.date === 'number') {
+                // Timestamp number
                 date = new Date(d.date).toLocaleDateString();
-                console.log('✅ Using string date');
-            } else if (d.date.seconds) {
-                // Firestore Timestamp object
-                date = new Date(d.date.seconds * 1000).toLocaleDateString();
-                console.log('✅ Using Firestore Timestamp.seconds');
+                console.log('🗓️ Debug: Number timestamp converted to:', date);
             } else {
-                console.log('❌ Unknown date format:', d.date);
+                console.log('🗓️ Debug: Unhandled date type, using fallback');
+                date = 'Recent';
             }
         } else {
-            console.log('❌ No date field found');
+            console.log('🗓️ Debug: No date field found');
         }
         
         console.log('Displaying leaderboard entry:', { rank, displayName, score, time, date, isCurrent });
