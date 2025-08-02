@@ -22,10 +22,11 @@ const gameDiv = document.getElementById('game');
 const gameOverDiv = document.getElementById('game-over');
 const scoreSolo = document.getElementById('score-solo');
 const scoreTeams = document.getElementById('score-teams');
-const timerDiv = document.querySelector('.timer p');
+const timerDiv = document.querySelector('.timer-value');
 const questionDiv = document.querySelector('.question p');
 const optionsDiv = document.querySelector('.options');
 const nextBtn = document.getElementById('next');
+const showOptionsBtn = document.getElementById('show-options');
 const resultsSolo = document.getElementById('results-solo');
 const resultsTeams = document.getElementById('results-teams');
 const playAgainBtn = document.getElementById('play-again');
@@ -41,19 +42,26 @@ const takeawayBtn = document.getElementById('takeaway-btn');
 const explanationDiv = document.createElement('div');
 explanationDiv.id = 'explanation';
 explanationDiv.style.display = 'none';
-explanationDiv.style.margin = '1.2rem auto 0 auto';
-explanationDiv.style.maxWidth = '90%';
-explanationDiv.style.background = 'rgba(255,255,255,0.18)';
-explanationDiv.style.border = '2.5px solid #ffd700';
-explanationDiv.style.borderRadius = '14px';
-explanationDiv.style.fontFamily = 'Bangers, cursive';
-explanationDiv.style.fontSize = '1.25rem';
-explanationDiv.style.color = '#222';
-explanationDiv.style.textAlign = 'center';
+explanationDiv.style.margin = '1rem 0 0 0';
+explanationDiv.style.width = '100%';
+explanationDiv.style.background = '#ffffff';
+explanationDiv.style.border = '2px solid #8B0000';
+explanationDiv.style.borderRadius = '12px';
+explanationDiv.style.fontFamily = 'Montserrat-Regular, Arial, sans-serif';
+explanationDiv.style.fontSize = '1.1rem';
+explanationDiv.style.color = '#333333';
+explanationDiv.style.textAlign = 'left';
 explanationDiv.style.padding = '1rem 1.2rem';
-explanationDiv.style.boxShadow = '0 2px 12px #ffd70022';
-// Insert after optionsDiv in the DOM
-optionsDiv.parentNode.appendChild(explanationDiv);
+explanationDiv.style.boxShadow = '0 2px 8px rgba(139,0,0,0.2)';
+explanationDiv.style.gridColumn = '1 / -1';
+explanationDiv.style.marginTop = '1rem';
+// Insert after the question-options-container in the DOM
+const questionOptionsContainer = document.querySelector('.question-options-container');
+if (questionOptionsContainer) {
+    questionOptionsContainer.parentNode.insertBefore(explanationDiv, questionOptionsContainer.nextSibling);
+} else {
+    optionsDiv.parentNode.appendChild(explanationDiv);
+}
 
 // --- Sound Integration ---
 const audioCorrect1 = document.getElementById('audio-correct-1');
@@ -61,11 +69,13 @@ const audioCorrect2 = document.getElementById('audio-correct-2');
 const audioWrong = document.getElementById('audio-wrong');
 const audioTimeup = document.getElementById('audio-timeup');
 const audioRiser = document.getElementById('audio-riser');
-// const audioBg = document.getElementById('audio-bg'); // Remove old
+// Background music tracks - now includes 5 soundtracks for variety
 const audioBgTracks = [
     document.getElementById('audio-bg-1'),
     document.getElementById('audio-bg-2'),
-    document.getElementById('audio-bg-3')
+    document.getElementById('audio-bg-3'),
+    document.getElementById('audio-bg-4'),
+    document.getElementById('audio-bg-5')
 ];
 let currentBgTrackIndex = 0;
 let currentBgTrack = null;
@@ -76,6 +86,52 @@ let isMuted = false;
 let tickingInterval = null;
 let userInteracted = false;
 
+// Debug function to check audio element status
+function debugAudioElements() {
+    const audioElements = {
+        'audioCorrect1': audioCorrect1,
+        'audioCorrect2': audioCorrect2,
+        'audioWrong': audioWrong,
+        'audioTimeup': audioTimeup,
+        'audioRiser': audioRiser,
+        'audioTickingTime': audioTickingTime,
+        'audioTimerTick': audioTimerTick
+    };
+    
+    console.log('Audio Elements Status:');
+    Object.entries(audioElements).forEach(([name, element]) => {
+        console.log(`${name}: ${element ? 'Found' : 'Missing'}`);
+    });
+    
+    // Check background music tracks
+    console.log('Background Music Tracks:');
+    audioBgTracks.forEach((track, index) => {
+        console.log(`audio-bg-${index + 1}: ${track ? 'Found' : 'Missing'}`);
+    });
+    
+    // Test ticking sound if available
+    if (audioTickingTime) {
+        console.log('Testing ticking sound...');
+        setTimeout(() => {
+            try {
+                audioTickingTime.currentTime = 0;
+                audioTickingTime.volume = 0.3;
+                audioTickingTime.play().then(() => {
+                    console.log('✅ Ticking sound test successful');
+                    setTimeout(() => {
+                        audioTickingTime.pause();
+                        audioTickingTime.currentTime = 0;
+                    }, 1000);
+                }).catch(e => {
+                    console.warn('❌ Ticking sound test failed:', e);
+                });
+            } catch (e) {
+                console.warn('❌ Ticking sound test error:', e);
+            }
+        }, 1000);
+    }
+}
+
 /**
  * Plays an audio element with error handling
  * @param {HTMLAudioElement} audio - The audio element to play
@@ -83,8 +139,24 @@ let userInteracted = false;
 function playSound(audio) {
     if (!isMuted && audio) {
         try {
+            // Reset audio to beginning
             audio.currentTime = 0;
-            audio.play().catch(e => console.warn('Error playing sound:', e));
+            
+            // Ensure volume is set properly
+            if (audio.volume === 0) {
+                audio.volume = 1;
+            }
+            
+            // Play with proper promise handling
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(e => {
+                    // Only log if it's not an interruption error
+                    if (e.name !== 'AbortError') {
+                        console.warn('Error playing sound:', e);
+                    }
+                });
+            }
         } catch (e) {
             console.warn('Error playing sound:', e);
         }
@@ -96,22 +168,42 @@ function playCorrectSound() {
 }
 function playBgMusic() {
     if (!isMuted) {
-        // Stop any currently playing background track
-        audioBgTracks.forEach(track => {
-            track.pause();
-            track.currentTime = 0;
-            track.onended = null;
-        });
-        // Play the current track
-        currentBgTrack = audioBgTracks[currentBgTrackIndex];
-        currentBgTrack.volume = 0.5;
-        currentBgTrack.currentTime = 0;
-        currentBgTrack.play().catch(e => console.warn('Error playing background music:', e));
-        // Set up event to play next track when this one ends
-        currentBgTrack.onended = () => {
-            currentBgTrackIndex = (currentBgTrackIndex + 1) % audioBgTracks.length;
-            playBgMusic();
-        };
+        try {
+            // Stop any currently playing background track
+            audioBgTracks.forEach(track => {
+                if (track) {
+                    track.pause();
+                    track.currentTime = 0;
+                    track.onended = null;
+                }
+            });
+            
+            // Play the current track
+            currentBgTrack = audioBgTracks[currentBgTrackIndex];
+            if (currentBgTrack) {
+                currentBgTrack.volume = 0.5;
+                currentBgTrack.currentTime = 0;
+                
+                // Use a promise to handle the play request properly
+                const playPromise = currentBgTrack.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(e => {
+                        // Only log if it's not an interruption error
+                        if (e.name !== 'AbortError') {
+                            console.warn('Error playing background music:', e);
+                        }
+                    });
+                }
+                
+                // Set up event to play next track when this one ends
+                currentBgTrack.onended = () => {
+                    currentBgTrackIndex = (currentBgTrackIndex + 1) % audioBgTracks.length;
+                    playBgMusic();
+                };
+            }
+        } catch (e) {
+            console.warn('Error in playBgMusic:', e);
+        }
     }
 }
 function pauseBgMusic() {
@@ -121,26 +213,38 @@ function pauseBgMusic() {
     });
 }
 function startTicking() {
-    if (isMuted) return;
+    if (isMuted || !audioTickingTime) return;
     stopTicking();
     
-    // Better approach: use audio loop property instead of setInterval
-    audioTickingTime.currentTime = 0;
-    audioTickingTime.loop = true;
-    
     try {
-        audioTickingTime.play().catch(e => {
-            console.warn('Error starting ticking sound:', e);
-            // Fallback to interval method if loop doesn't work
-            tickingInterval = setInterval(() => {
-                if (!isMuted) {
-                    audioTickingTime.currentTime = 0;
-                    audioTickingTime.play().catch(() => {});
-                }
-            }, 1000);
-        });
+        // Reset and prepare the audio
+        audioTickingTime.currentTime = 0;
+        audioTickingTime.loop = true;
+        audioTickingTime.volume = 0.7;
+        
+        // Try to play with loop first
+        const playPromise = audioTickingTime.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(e => {
+                console.warn('Error starting ticking sound with loop:', e);
+                // Fallback to interval method if loop doesn't work
+                tickingInterval = setInterval(() => {
+                    if (!isMuted && audioTickingTime) {
+                        audioTickingTime.currentTime = 0;
+                        audioTickingTime.play().catch(() => {});
+                    }
+                }, 1000);
+            });
+        }
     } catch (e) {
         console.warn('Error playing ticking sound:', e);
+        // Fallback to interval method
+        tickingInterval = setInterval(() => {
+            if (!isMuted && audioTickingTime) {
+                audioTickingTime.currentTime = 0;
+                audioTickingTime.play().catch(() => {});
+            }
+        }, 1000);
     }
 }
 
@@ -151,8 +255,11 @@ function stopTicking() {
     }
     
     try {
-        audioTickingTime.pause();
-        audioTickingTime.currentTime = 0;
+        if (audioTickingTime) {
+            audioTickingTime.pause();
+            audioTickingTime.currentTime = 0;
+            audioTickingTime.loop = false;
+        }
     } catch (e) {
         console.warn('Error stopping ticking sound:', e);
     }
@@ -191,6 +298,9 @@ function ensureUserInteraction() {
         userInteracted = true;
         muteToggle.style.display = 'block';
         
+        // Ensure all audio elements are properly loaded
+        console.log('Ensuring audio elements are ready...');
+        
         // Pre-load audio files after user interaction
         const allAudioElements = [
             audioCorrect1, audioCorrect2, audioWrong, audioTimeup,
@@ -205,13 +315,15 @@ function ensureUserInteraction() {
             if (audio) {
                 try {
                     // Create a silent buffer and play it to "warm up" the audio context
+                    const originalVolume = audio.volume;
                     audio.volume = 0;
                     audio.play().then(() => {
                         audio.pause();
                         audio.currentTime = 0;
-                        audio.volume = isMuted ? 0 : 1;
+                        audio.volume = isMuted ? 0 : originalVolume;
                     }).catch(() => {
                         // Silently fail - this is just pre-loading
+                        audio.volume = isMuted ? 0 : originalVolume;
                     });
                 } catch (e) {
                     // Ignore errors during preloading
@@ -233,9 +345,10 @@ const confettiSettings = { target: 'confetti-canvas', respawn: false, clock: 30,
 const confetti = new ConfettiGenerator(confettiSettings);
 
 // --- Timer and Game State Variables ---
-let TIME_LIMIT = 10; // was 20, now 10 for harder gameplay
+let TIME_LIMIT = 40; // Extended to 40 seconds for better gameplay
 let questions = [];
 let currentQuestionIndex = 0;
+let currentPhase = 'question'; // 'question' or 'options'
 let gameMode = 'solo'; // 'solo' or 'teams'
 let teamBlueScore = 0;
 let teamBlackScore = 0;
@@ -273,26 +386,44 @@ let blueTeamQuestions = [];
 
 // --- Utility Functions ---
 function shuffle(array) {
-    let currentIndex = array.length, randomIndex;
+    // Create a copy to avoid mutating the original array
+    const shuffled = [...array];
+    let currentIndex = shuffled.length, randomIndex;
+    
+    // Fisher-Yates shuffle algorithm for true randomization
     while (currentIndex !== 0) {
         randomIndex = Math.floor(Math.random() * currentIndex);
         currentIndex--;
-        [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+        [shuffled[currentIndex], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[currentIndex]];
     }
-    return array;
+    
+    return shuffled;
 }
 
-// --- NEW: Get Time Attack Questions ---
-function getAttackModeQuestions(filteredByCategory, questionsToExclude = [], lenient = false) {
-    const excludeIds = new Set(questionsToExclude.map(q => q.id));
-    // Instead of filtering by difficulty, just use all available questions not excluded
-    const allQuestions = shuffle(filteredByCategory.filter(q => !excludeIds.has(q.id)));
-    if (allQuestions.length < 1) {
-        alert('Too few unique questions available for a full game. Please try "All Categories" or add more questions.');
-        return null;
+// Function to verify question randomization
+function verifyQuestionRandomization(questions, category) {
+    console.log(`=== Question Randomization Verification for ${category} ===`);
+    console.log(`Total questions selected: ${questions.length}`);
+    console.log(`Question IDs (in order): ${questions.map(q => q.id).join(', ')}`);
+    
+    // Check for any patterns or ordering
+    const categories = [...new Set(questions.map(q => q.category))];
+    console.log(`Categories represented: ${categories.join(', ')}`);
+    
+    // Check if questions are truly random by looking at consecutive patterns
+    let consecutiveSameCategory = 0;
+    for (let i = 1; i < questions.length; i++) {
+        if (questions[i].category === questions[i-1].category) {
+            consecutiveSameCategory++;
+        }
     }
-    return allQuestions;
+    console.log(`Consecutive same-category questions: ${consecutiveSameCategory}/${questions.length-1}`);
+    
+    console.log('=== End Verification ===');
 }
+
+// --- REMOVED: Get Time Attack Questions function is no longer needed ---
+// All questions are now completely randomized without any exclusions or ordering criteria
 
 function clearOptions() {
     while (optionsDiv.firstChild) {
@@ -317,12 +448,20 @@ function resetState() {
     nextBtn.style.display = 'none';
     clearOptions();
     timerDiv.classList.remove('low-time');
+    timerDiv.parentElement.parentElement.classList.remove('urgent');
     stopTicking();
-    const progressBar = document.getElementById('progress-bar');
-    if (progressBar) {
-        progressBar.style.width = '0%';
-        progressBar.classList.remove('light-up');
-    }
+    
+    // Reset achievement tracking stats for new game
+    currentGameStats = {
+        prophecyStreak: 0,
+        healthStreak: 0,
+        bibleStreak: 0,
+        fastAnswers: 0,
+        highWagers: 0,
+        lightningRound: false,
+        lightningStartTime: null,
+        lightningAnswers: 0
+    };
 }
 
 // --- Animation Functions ---
@@ -370,7 +509,7 @@ function showFeedback(isCorrect) {
     word.style.boxShadow = '0 4px 32px #0008';
     word.style.letterSpacing = '2px';
     word.style.opacity = '0';
-    word.style.transition = 'opacity 0.18s, transform 0.18s';
+    word.style.transition = 'opacity 0.15s, transform 0.15s';
     document.body.appendChild(word);
     setTimeout(() => {
         word.style.opacity = '1';
@@ -379,8 +518,8 @@ function showFeedback(isCorrect) {
     setTimeout(() => {
         word.style.opacity = '0';
         word.style.transform = word.style.transform.replace(' scale(1.18)', ' scale(0.7)');
-    }, 900);
-    setTimeout(() => { word.remove(); }, 1200);
+    }, 600);
+    setTimeout(() => { word.remove(); }, 800);
 }
 
 function triggerConfetti(type = 'normal') {
@@ -682,17 +821,19 @@ const CATEGORY_ICONS = {
 // Fun facts, Bible verses, and health tips
 const FUN_FACTS = [
     // Bible Verses
-    '“I can do all things through Christ who strengthens me.” — Philippians 4:13',
-    '“Trust in the Lord with all your heart and lean not on your own understanding.” — Proverbs 3:5',
-    '“Beloved, I pray that you may prosper in all things and be in health, just as your soul prospers.” — 3 John 1:2',
+    '"I can do all things through Christ who strengthens me." — Philippians 4:13',
+    '"Trust in the Lord with all your heart and lean not on your own understanding." — Proverbs 3:5',
+    '"Beloved, I pray that you may prosper in all things and be in health, just as your soul prospers." — 3 John 1:2',
+    '"For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life." — John 3:16',
+    '"Thy word is a lamp unto my feet, and a light unto my path." — Psalm 119:105',
+    '"Come unto me, all ye that labour and are heavy laden, and I will give you rest." — Matthew 11:28',
+    '"But they that wait upon the Lord shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint." — Isaiah 40:31',
+    '"Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth." — 2 Timothy 2:15',
     // Health Tips
     '🥗 Health Tip: Drinking enough water each day is crucial for many reasons: to regulate body temperature, keep joints lubricated, and deliver nutrients to cells.',
     '🥦 Health Tip: Eating a variety of colorful fruits and vegetables helps your body get a wide range of nutrients.',
     '🚶‍♂️ Health Tip: Just 30 minutes of walking a day can boost your mood and improve your health.',
-    // Fun Facts
-    '🌍 Fun Fact: The Seventh-day Adventist Church operates one of the largest Protestant educational systems in the world.',
-    '🎵 Fun Fact: Music can reduce anxiety, blood pressure, and pain as well as improve sleep quality, mood, and memory.',
-    '⏳ Fun Fact: The "Great Disappointment" of 1844 led to the formation of the Adventist movement.'
+
 ];
 
 function getRandomFunFact() {
@@ -729,57 +870,416 @@ function getRandomEncouragement(isCorrect) {
     return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// --- Achievements and Star Rubric ---
+// --- Enhanced Achievement System with Animated Badges ---
 const ACHIEVEMENTS = [
   {
     id: 'novice_guardian',
     name: 'Novice Guardian',
-    description: 'Complete a game.',
+    description: 'Complete your first game.',
+    icon: '🛡️',
+    color: '#4CAF50',
+    rarity: 'common',
     check: (stats) => stats.completed,
   },
   {
     id: 'accuracy_ace',
     name: 'Accuracy Ace',
     description: 'Get 90% or more correct answers in a game.',
+    icon: '🎯',
+    color: '#FF9800',
+    rarity: 'rare',
     check: (stats) => stats.correctPct >= 90,
   },
   {
     id: 'streak_master',
     name: 'Streak Master',
     description: 'Achieve a streak of 10 or more correct answers in a row.',
+    icon: '🔥',
+    color: '#F44336',
+    rarity: 'epic',
     check: (stats) => stats.longestStreak >= 10,
   },
   {
     id: 'speedster',
     name: 'Speedster',
     description: 'Average answer time under 7 seconds.',
+    icon: '⚡',
+    color: '#2196F3',
+    rarity: 'rare',
     check: (stats) => stats.avgTime < 7,
   },
   {
     id: 'faithful_finisher',
     name: 'Faithful Finisher',
     description: 'Finish a game without using any power-ups.',
+    icon: '✝️',
+    color: '#9C27B0',
+    rarity: 'epic',
     check: (stats) => stats.powerUpsUsed === 0,
   },
   {
     id: 'comeback_kid',
     name: 'Comeback Kid',
     description: 'Recover from a streak of 3+ wrong answers to finish with 80%+ accuracy.',
+    icon: '🔄',
+    color: '#FF5722',
+    rarity: 'legendary',
     check: (stats) => stats.comeback && stats.correctPct >= 80,
   },
   {
     id: 'token_tycoon',
     name: 'Token Tycoon',
     description: 'Earn 10 or more Faith Tokens in a single game.',
+    icon: '💎',
+    color: '#FFD700',
+    rarity: 'legendary',
     check: (stats) => stats.faithTokens >= 10,
   },
   {
     id: 'perfect_game',
     name: 'Perfect Game',
     description: 'Answer all questions correctly in a game.',
+    icon: '👑',
+    color: '#E91E63',
+    rarity: 'mythic',
     check: (stats) => stats.correctAnswers === stats.totalQuestions,
   },
+  {
+    id: 'prophecy_pro',
+    name: 'Prophecy Pro',
+    description: 'Answer 5 prophecy questions correctly in a row.',
+    icon: '🔮',
+    color: '#673AB7',
+    rarity: 'epic',
+    check: (stats) => stats.prophecyStreak >= 5,
+  },
+  {
+    id: 'health_guru',
+    name: 'Health Guru',
+    description: 'Answer 5 health questions correctly in a row.',
+    icon: '🥗',
+    color: '#4CAF50',
+    rarity: 'rare',
+    check: (stats) => stats.healthStreak >= 5,
+  },
+  {
+    id: 'bible_scholar',
+    name: 'Bible Scholar',
+    description: 'Answer 5 Bible People questions correctly in a row.',
+    icon: '📖',
+    color: '#795548',
+    rarity: 'epic',
+    check: (stats) => stats.bibleStreak >= 5,
+  },
+  {
+    id: 'time_master',
+    name: 'Time Master',
+    description: 'Answer 3 questions in under 10 seconds total.',
+    icon: '⏱️',
+    color: '#00BCD4',
+    rarity: 'rare',
+    check: (stats) => stats.fastAnswers >= 3,
+  },
+  {
+    id: 'wager_warrior',
+    name: 'Wager Warrior',
+    description: 'Win 3 high-stakes wagers in a single game.',
+    icon: '🎲',
+    color: '#FF5722',
+    rarity: 'epic',
+    check: (stats) => stats.highWagers >= 3,
+  },
+  {
+    id: 'perseverance',
+    name: 'Perseverance',
+    description: 'Complete a 50+ question game.',
+    icon: '🏃',
+    color: '#607D8B',
+    rarity: 'rare',
+    check: (stats) => stats.totalQuestions >= 50,
+  },
+  {
+    id: 'lightning_round',
+    name: 'Lightning Round',
+    description: 'Answer 5 questions in under 30 seconds.',
+    icon: '⚡',
+    color: '#FFC107',
+    rarity: 'legendary',
+    check: (stats) => stats.lightningRound,
+  },
 ];
+
+// Achievement tracking variables
+let earnedAchievements = new Set();
+let currentGameStats = {
+  prophecyStreak: 0,
+  healthStreak: 0,
+  bibleStreak: 0,
+  fastAnswers: 0,
+  highWagers: 0,
+  lightningRound: false,
+  lightningStartTime: null,
+  lightningAnswers: 0
+};
+
+/**
+ * Check and award achievements based on current game stats
+ * @param {Object} stats - Current game statistics
+ */
+function checkAchievements(stats) {
+  const newAchievements = [];
+  
+  ACHIEVEMENTS.forEach(achievement => {
+    if (!earnedAchievements.has(achievement.id) && achievement.check(stats)) {
+      earnedAchievements.add(achievement.id);
+      newAchievements.push(achievement);
+    }
+  });
+  
+  // Show achievement badges for newly earned achievements
+  newAchievements.forEach(achievement => {
+    showAchievementBadge(achievement);
+  });
+  
+  return newAchievements;
+}
+
+/**
+ * Show an animated achievement badge
+ * @param {Object} achievement - The achievement object
+ */
+function showAchievementBadge(achievement) {
+  // Create achievement badge container
+  const badge = document.createElement('div');
+  badge.className = 'achievement-badge';
+  badge.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 300px;
+    background: linear-gradient(135deg, ${achievement.color}22, ${achievement.color}44);
+    border: 3px solid ${achievement.color};
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 8px 32px ${achievement.color}66, 0 0 20px ${achievement.color}44;
+    z-index: 10000;
+    transform: translateX(400px);
+    transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    font-family: 'Montserrat-Regular', Arial, sans-serif;
+    color: #ffffff;
+    text-align: center;
+  `;
+  
+  // Add rarity glow effect
+  const rarityGlow = {
+    'common': '0 0 10px rgba(76, 175, 80, 0.5)',
+    'rare': '0 0 15px rgba(255, 152, 0, 0.6)',
+    'epic': '0 0 20px rgba(156, 39, 176, 0.7)',
+    'legendary': '0 0 25px rgba(255, 215, 0, 0.8)',
+    'mythic': '0 0 30px rgba(233, 30, 99, 0.9)'
+  };
+  
+  badge.style.boxShadow += `, ${rarityGlow[achievement.rarity]}`;
+  
+  // Create badge content
+  badge.innerHTML = `
+    <div class="achievement-icon" style="
+      font-size: 3rem;
+      margin-bottom: 10px;
+      animation: achievementIconPulse 2s ease-in-out infinite;
+    ">${achievement.icon}</div>
+    <div class="achievement-rarity" style="
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: ${achievement.color};
+      font-weight: bold;
+      margin-bottom: 5px;
+      text-shadow: 0 0 5px ${achievement.color};
+    ">${achievement.rarity}</div>
+    <div class="achievement-name" style="
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-bottom: 8px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    ">${achievement.name}</div>
+    <div class="achievement-description" style="
+      font-size: 0.9rem;
+      opacity: 0.9;
+      line-height: 1.3;
+    ">${achievement.description}</div>
+    <div class="achievement-progress" style="
+      margin-top: 10px;
+      height: 4px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 2px;
+      overflow: hidden;
+    ">
+      <div class="achievement-progress-bar" style="
+        height: 100%;
+        background: ${achievement.color};
+        width: 0%;
+        transition: width 1s ease-out;
+        box-shadow: 0 0 10px ${achievement.color};
+      "></div>
+    </div>
+  `;
+  
+  // Add to page
+  document.body.appendChild(badge);
+  
+  // Play achievement sound
+  playSound(audioRiser);
+  
+  // Animate in
+  setTimeout(() => {
+    badge.style.transform = 'translateX(0)';
+    
+    // Animate progress bar
+    setTimeout(() => {
+      const progressBar = badge.querySelector('.achievement-progress-bar');
+      if (progressBar) {
+        progressBar.style.width = '100%';
+      }
+    }, 300);
+  }, 100);
+  
+  // Add pulsing animation
+  badge.style.animation = 'achievementBadgePulse 3s ease-in-out infinite';
+  
+  // Remove after 5 seconds
+  setTimeout(() => {
+    badge.style.transform = 'translateX(400px)';
+    setTimeout(() => {
+      if (badge.parentNode) {
+        badge.parentNode.removeChild(badge);
+      }
+    }, 600);
+  }, 5000);
+}
+
+/**
+ * Update current game stats for achievement tracking
+ * @param {Object} data - Game data to update
+ */
+function updateAchievementStats(data) {
+    if (data.category === 'Prophecy' || data.category === 'The Great Controversy') {
+        if (data.correct) {
+            currentGameStats.prophecyStreak++;
+        } else {
+            currentGameStats.prophecyStreak = 0;
+        }
+    } else if (data.category === 'Diet & Health') {
+        if (data.correct) {
+            currentGameStats.healthStreak++;
+        } else {
+            currentGameStats.healthStreak = 0;
+        }
+    } else if (data.category === 'Bible People') {
+        if (data.correct) {
+            currentGameStats.bibleStreak++;
+        } else {
+            currentGameStats.bibleStreak = 0;
+        }
+    }
+    
+    // Track fast answers
+    if (data.answerTime && data.answerTime < 5) {
+        currentGameStats.fastAnswers++;
+    }
+    
+    // Track high wagers
+    if (data.wager && data.wager >= 20) {
+        currentGameStats.highWagers++;
+    }
+    
+    // Track lightning round
+    if (!currentGameStats.lightningStartTime) {
+        currentGameStats.lightningStartTime = Date.now();
+        currentGameStats.lightningAnswers = 0;
+    }
+    
+    if (data.correct) {
+        currentGameStats.lightningAnswers++;
+        const elapsed = (Date.now() - currentGameStats.lightningStartTime) / 1000;
+        
+        if (currentGameStats.lightningAnswers >= 5 && elapsed <= 30) {
+            currentGameStats.lightningRound = true;
+        }
+    }
+}
+
+/**
+ * Test function to demonstrate achievement badges
+ * Call this in the browser console to see all achievement badges
+ */
+function testAchievementBadges() {
+    console.log('🎯 Testing Achievement Badges...');
+    
+    // Show each achievement badge with a delay
+    ACHIEVEMENTS.forEach((achievement, index) => {
+        setTimeout(() => {
+            showAchievementBadge(achievement);
+            console.log(`✅ Showing achievement: ${achievement.name}`);
+        }, index * 2000); // Show each badge 2 seconds apart
+    });
+    
+    console.log('🎮 Achievement badges will appear in the top-right corner!');
+}
+
+/**
+ * Test function to verify team mode functionality
+ * Call this in the browser console to test team mode
+ */
+function testTeamMode() {
+    console.log('🏈 Testing Team Mode...');
+    
+    // Check if team mode elements exist
+    const teamElements = {
+        'score-teams': document.getElementById('score-teams'),
+        'team-turn-indicator': document.getElementById('team-turn-indicator'),
+        'intermission-screen': document.getElementById('intermission-screen'),
+        'teams-button': document.getElementById('teams')
+    };
+    
+    console.log('📋 Team Mode Elements Check:');
+    Object.entries(teamElements).forEach(([name, element]) => {
+        console.log(`${name}: ${element ? '✅ Found' : '❌ Missing'}`);
+    });
+    
+    // Check team mode variables
+    console.log('🔧 Team Mode Variables:');
+    console.log('gameMode:', typeof gameMode !== 'undefined' ? gameMode : 'undefined');
+    console.log('teamBlueScore:', typeof teamBlueScore !== 'undefined' ? teamBlueScore : 'undefined');
+    console.log('teamBlackScore:', typeof teamBlackScore !== 'undefined' ? teamBlackScore : 'undefined');
+    console.log('currentTeam:', typeof currentTeam !== 'undefined' ? currentTeam : 'undefined');
+    
+    // Test team mode initialization
+    console.log('🚀 Testing Team Mode Initialization...');
+    try {
+        // Simulate team mode start
+        const originalGameMode = gameMode;
+        gameMode = 'teams';
+        teamBlueScore = 0;
+        teamBlackScore = 0;
+        currentTeam = 'blue';
+        
+        console.log('✅ Team mode variables initialized successfully');
+        console.log('Current team:', currentTeam);
+        console.log('Blue score:', teamBlueScore);
+        console.log('Black score:', teamBlackScore);
+        
+        // Restore original state
+        gameMode = originalGameMode;
+        console.log('🔄 Original game mode restored');
+        
+    } catch (error) {
+        console.error('❌ Error testing team mode:', error);
+    }
+    
+    console.log('🎮 Team mode test complete! Start a team game to verify functionality.');
+}
 
 function calculateStars(stats) {
   // Rubric:
@@ -830,7 +1330,8 @@ function setLoadingProgress(percent) {
 
 // --- Asset Preload Logic ---
 const audioElements = [
-    'audio-correct-1','audio-correct-2','audio-wrong','audio-timeup','audio-riser','audio-bg','audio-timer-tick','audio-ticking-time',
+    'audio-correct-1','audio-correct-2','audio-wrong','audio-timeup','audio-riser',
+    'audio-bg-1','audio-bg-2','audio-bg-3','audio-bg-4','audio-bg-5','audio-timer-tick','audio-ticking-time',
     'audio-streak-wowza','audio-streak-zing','audio-streak-kawabanga','audio-streak-letsgo','audio-streak-nice',
     'audio-transition', 'audio-transition2'
 ].map(id => document.getElementById(id)).filter(Boolean);
@@ -852,11 +1353,8 @@ function preloadAudioAssets(onProgress, onComplete) {
 // --- Video Preload Logic ---
 const allBackgroundVideos = [
     'background.mp4',
-    'background 2.mp4',
-    'background 3.mp4',
-    'background 5.mp4',
-    'background 6.mp4',
-    'background 7.mp4'
+    'background 1.mp4',
+    'background 2.mp4'
 ];
 let videoPreloadCount = 0;
 function preloadVideoAssets(onProgress, onComplete) {
@@ -908,6 +1406,9 @@ const createOptionButtons = (options, onClick) => {
 
 // --- DOMContentLoaded for all DOM queries and listeners ---
 document.addEventListener('DOMContentLoaded', () => {
+    // Debug audio elements to check if they're properly loaded
+    debugAudioElements();
+    
     // Initialize DOM elements
     categoryDropdown = document.getElementById('category-dropdown');
     
@@ -1041,42 +1542,43 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- NEW: CHECK FOR TIME ATTACK MODE ---
         isTimeAttackMode = false; // Force disable time attack mode
 
-        // Filter questions by category first
+        // Get game length
+        let numQuestions = 20;
+        const gameLengthSelect = document.getElementById('game-length-select');
+        if (gameLengthSelect && !isNaN(parseInt(gameLengthSelect.value, 10))) {
+            numQuestions = parseInt(gameLengthSelect.value, 10);
+        }
+
+        // Filter questions by category and COMPLETELY RANDOMIZE
         const selectedCategory = categoryDropdown.value;
         let availableQuestions;
         if (selectedCategory === 'All') {
-            availableQuestions = shuffle([...gameQuestions]);
+            availableQuestions = [...gameQuestions];
         } else {
-            availableQuestions = shuffle(gameQuestions.filter(q => q.category === selectedCategory));
+            availableQuestions = gameQuestions.filter(q => q.category === selectedCategory);
         }
 
-        if (isTimeAttackMode) {
-            questions = getAttackModeQuestions(availableQuestions, [], false);
-            if (questions === null) return; // Stop if not enough questions
-            // SAVE BLUE TEAM'S QUESTIONS FOR EXCLUSION LATER
-            if (gameMode === 'teams') {
-                blueTeamQuestions = [...questions]; // Save a copy of blue team's questions
-                console.log('Blue team questions saved:', blueTeamQuestions.map(q => q.id));
-            }
-            gameQuestionCount = questions.length;
-            maxWagerValue = 20; // Higher stakes
-            currentWager = 10;
-        } else {
-            let numQuestions = 20;
-            const gameLengthSelect = document.getElementById('game-length-select');
-            if (gameLengthSelect && !isNaN(parseInt(gameLengthSelect.value, 10))) {
-                numQuestions = parseInt(gameLengthSelect.value, 10);
-            }
-            questions = shuffle(availableQuestions).slice(0, numQuestions);
-            gameQuestionCount = numQuestions;
-            maxWagerValue = 20;
-            currentWager = 5;
-        }
+        // COMPLETELY RANDOMIZE QUESTIONS - NO ORDERING CRITERIA WHATSOEVER
+        // Every question has an equal chance of being selected, regardless of:
+        // - Position in the original array
+        // - Difficulty level
+        // - Category order
+        // - Previous game history
+        // - Team assignments
+        questions = shuffle(availableQuestions).slice(0, numQuestions);
+        gameQuestionCount = numQuestions;
+        maxWagerValue = 20;
+        currentWager = 5;
 
         if (questions.length === 0) {
             alert('No questions found for this category!');
             return;
         }
+        
+        console.log('Questions selected (completely randomized):', questions.map(q => q.id));
+        
+        // Verify that questions are truly randomized
+        verifyQuestionRandomization(questions, selectedCategory);
         
         gameStartTime = Date.now();
         wagerInput.value = currentWager;
@@ -1087,6 +1589,8 @@ document.addEventListener('DOMContentLoaded', () => {
         gameDiv.classList.add('active');
         gameOverDiv.style.display = 'none';
         nextBtn.style.display = 'none';
+        // Initialize phase
+        resetPhase();
 
         if (gameMode === 'solo') {
             scoreSolo.style.display = 'block';
@@ -1097,105 +1601,38 @@ document.addEventListener('DOMContentLoaded', () => {
             scoreTeams.style.display = 'block';
             updateScoreDisplay(); // Use the new function
         }
-
-        // START THE CORRECT TIMER
-        if (isTimeAttackMode) {
-            startGlobalTimer();
-        }
         
         showQuestion();
         exitBtn.style.display = 'block';
-        exitBtn.onclick = () => {
-            // Optional confirmation for mid-game exits
-            if (gameDiv.style.display !== 'none' && currentQuestionIndex > 0 && !confirm('Are you sure you want to exit? Progress will be lost.')) {
-                return;
-            }
-
-            // Clean up all timers and audio
-            clearInterval(timer);
-            stopTicking();
-            if (isTimeAttackMode) {
-                stopGlobalTimer();
-            }
-
-            // Reset all game state and UI
-            resetState();
-
-            // Hide overlays if present
-            const loadingOverlay = document.getElementById('loading-overlay');
-            if (loadingOverlay) loadingOverlay.style.display = 'none';
-            if (feedbackOverlay) feedbackOverlay.style.display = 'none';
-
-            // Determine current screen and slide out appropriately
-            const currentScreen = gameOverDiv.style.display !== 'none' ? gameOverDiv : gameDiv;
-            slideOut(currentScreen, () => {
-                slideIn(container);
-            });
-
-            // Hide both game screens and remove active classes
-            gameDiv.style.display = 'none';
-            gameOverDiv.style.display = 'none';
-            gameDiv.classList.remove('active');
-            gameOverDiv.classList.remove('active');
-
-            // Hide exit button
-            exitBtn.style.display = 'none';
-
-            // Stop music
-            pauseBgMusic();
-
-            // Reset game state to prevent memory leaks
-            questions = [];
-            currentQuestionIndex = 0;
-            playerScore = 0;
-            currentStreak = 0;
-            longestStreak = 0;
-            correctAnswers = 0;
-            teamBlueScore = 0;
-            teamBlackScore = 0;
-            faithTokens = 0;
-            powerUpsUsed = 0;
-            wrongStreak = 0;
-            hadComebackStreak = false;
-            answerTimes = [];
-            gameStartTime = null;
-            gameElapsedTime = 0;
-            gameQuestionCount = 0;
-            doublePointsActive = false;
-            freezeTimeActive = false;
-            timeRanOut = false;
-            timeAttackTeamTurn = 'blue';
-            timeAttackBlueTeamFinalScore = 0;
-            blueTeamQuestions = [];
-
-            // Hide encouragement message if present
-            const encouragementDiv = document.getElementById('encouragement-message');
-            if (encouragementDiv) encouragementDiv.innerText = '';
-        };
-        // Show a new fun fact on the start screen when returning
-        const funFactBox = document.getElementById('fun-fact-box');
-        if (funFactBox) {
-            funFactBox.innerText = getRandomFunFact();
-        }
     };
 
-    // --- Show Question ---
-    window.showQuestion = function() {
+    // --- Two-Phase Question Display ---
+    function resetPhase() {
+        currentPhase = 'question';
+        gameDiv.classList.remove('options-phase');
+        gameDiv.classList.add('question-phase');
+    }
+    
+    function showQuestionOnly() {
         resetState();
+        resetPhase();
+        
         hintBtn.disabled = false;
         takeawayBtn.disabled = false;
         doublePointsActive = false;
         freezeTimeActive = false;
         updateFaithTokens();
+        
         // Remove hint/removed classes from previous question
         Array.from(optionsDiv.children).forEach(btn => {
             btn.classList.remove('hint-highlight', 'option-removed');
         });
+        
         // Lightning round logic
         isLightningRound = (currentQuestionIndex > 0 && currentQuestionIndex % roundSize === 0);
         
         // Dynamic wager limits based on game state
-        TIME_LIMIT = 10;
+        TIME_LIMIT = 40;
         
         if (isLightningRound) {
             // Higher stakes for lightning rounds
@@ -1226,10 +1663,8 @@ document.addEventListener('DOMContentLoaded', () => {
         wagerInput.value = Math.min(currentWager, maxWagerValue);
         currentWager = parseInt(wagerInput.value, 10);
         updateWagerFeedback();
-        // Wager UI: show for each question
-        wagerInput.disabled = false;
-        wagerInput.style.background = isLightningRound ? '#ffd700' : '';
-        // Question
+        
+        // Question display
         if (gameMode === 'teams') {
             if (isTimeAttackMode) {
                 // In Time Attack, the turn is fixed for the whole round
@@ -1239,25 +1674,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentTeam = (currentQuestionIndex % 2 === 0) ? 'blue' : 'black';
             }
         }
+        
         if (!questions[currentQuestionIndex]) {
             showEndScreen();
             return;
         }
+        
         const question = questions[currentQuestionIndex];
         // Add category icon/badge
         const icon = CATEGORY_ICONS[question.category] || '';
         questionDiv.innerHTML = `<span class='category-badge'>${icon}</span> ${question.question}`;
-        const shuffledOptions = shuffle(question.options);
+        
+        // Clear options but don't create them yet
         optionsDiv.innerHTML = '';
-        optionsDiv.appendChild(createOptionButtons(shuffledOptions, selectAnswer));
+        
         if (gameMode === 'solo') updateSoloStats();
         else updateScoreDisplay();
-        // START PER-QUESTION TIMER ONLY IF NOT IN TIME ATTACK
-        if (!isTimeAttackMode) {
-            startTimer();
-        }
+        
+        // NO TIMER STARTED YET
         explanationDiv.style.display = 'none';
         explanationDiv.innerText = '';
+        
         // Set prophecy mode if needed
         const currentQ = questions[currentQuestionIndex];
         const isProphecy = currentQ && (currentQ.category === 'Prophecy' || currentQ.category === 'The Great Controversy');
@@ -1267,24 +1704,40 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.classList.remove('prophecy-mode');
         }
         setBackgroundVideoForQuestion(isProphecy);
-        // Set diet & health theme if needed
-        // REMOVE the following lines so health questions use the default theme
-        // if (currentQ && currentQ.category === 'Diet & Health') {
-        //     document.body.classList.add('diet-health-theme');
-        // } else {
-        //     document.body.classList.remove('diet-health-theme');
-        // }
+        
         // Set Bible theme if needed
         if (currentQ && currentQ.category === 'Bible People') {
             // document.body.classList.add('bible-theme');
         } else {
             // document.body.classList.remove('bible-theme');
         }
-        // Fade in new question/options
+        
+        // Fade in question
         setTimeout(() => {
             fadeIn(document.querySelector('.question'));
-            fadeIn(document.querySelector('.options'));
         }, 50);
+        
+        // Clear encouragement message if it exists
+        const encouragementDiv = document.getElementById('encouragement-message');
+        if (encouragementDiv) {
+            encouragementDiv.innerText = '';
+        }
+    }
+    
+    function showOptionsWithTimer() {
+        currentPhase = 'options';
+        gameDiv.classList.remove('question-phase');
+        gameDiv.classList.add('options-phase');
+        
+        const question = questions[currentQuestionIndex];
+        const shuffledOptions = shuffle(question.options);
+        optionsDiv.innerHTML = '';
+        optionsDiv.appendChild(createOptionButtons(shuffledOptions, selectAnswer));
+        
+        // Wager UI: enable for options phase
+        wagerInput.disabled = false;
+        wagerInput.style.background = isLightningRound ? '#ffd700' : '';
+        
         // Ensure double points and freeze time are only visible in team mode
         if (gameMode === 'solo') {
             doublePointsBtn.style.display = 'none';
@@ -1293,6 +1746,7 @@ document.addEventListener('DOMContentLoaded', () => {
             doublePointsBtn.style.display = '';
             freezeTimeBtn.style.display = '';
         }
+        
         // Clear encouragement message
         let encouragementDiv = document.getElementById('encouragement-message');
         if (!encouragementDiv) {
@@ -1307,6 +1761,22 @@ document.addEventListener('DOMContentLoaded', () => {
             optionsDiv.parentNode.appendChild(encouragementDiv);
         }
         encouragementDiv.innerText = '';
+        
+        // START TIMER ONLY NOW
+        if (!isTimeAttackMode) {
+            startTimer();
+        }
+        
+        // Fade in options
+        setTimeout(() => {
+            fadeIn(document.querySelector('.options'));
+        }, 50);
+    }
+
+    // --- Show Question (Updated for Two-Phase) ---
+    window.showQuestion = function() {
+        // Start with question-only phase
+        showQuestionOnly();
     };
 
     // --- Select Answer ---
@@ -1323,6 +1793,17 @@ document.addEventListener('DOMContentLoaded', () => {
         let wager = parseInt(wagerInput.value, 10) || 1;
         const isFriday = (new Date().getDay() === 5);
         if (isFriday) wager *= 2;
+        
+        // Track achievement stats
+        const currentQuestion = questions[currentQuestionIndex];
+        const answerTime = TIME_LIMIT - timeLeft;
+        
+        updateAchievementStats({
+            category: currentQuestion.category,
+            correct: correct,
+            answerTime: answerTime,
+            wager: wager
+        });
 
         if (correct) {
             playCorrectSound();
@@ -1381,21 +1862,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const currentQ = questions[currentQuestionIndex];
         if (currentQ.explanation) {
-            explanationDiv.innerText = '💡 ' + currentQ.explanation;
+            // Handle the new explanation object structure
+            let explanationHTML = '<span style="color: #8B0000; font-weight: bold;">💡 Explanation:</span><br><br>';
+            
+            if (typeof currentQ.explanation === 'object') {
+                // New structured explanation format
+                if (currentQ.explanation.Relevance_and_Correctness) {
+                    explanationHTML += `<div style="margin-bottom: 1rem;"><strong style="color: #FFD700; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">Relevance & Correctness:</strong><br>${currentQ.explanation.Relevance_and_Correctness}</div>`;
+                }
+                if (currentQ.explanation.Importance_of_Wording) {
+                    explanationHTML += `<div style="margin-bottom: 1rem;"><strong style="color: #FFD700; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">Importance of Wording:</strong><br>${currentQ.explanation.Importance_of_Wording}</div>`;
+                }
+                if (currentQ.explanation.Factual_Explanation) {
+                    explanationHTML += `<div style="margin-bottom: 1rem;"><strong style="color: #FFD700; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">Factual Explanation:</strong><br>${currentQ.explanation.Factual_Explanation}</div>`;
+                }
+                if (currentQ.explanation.Theological_Meaning) {
+                    explanationHTML += `<div style="margin-bottom: 1rem;"><strong style="color: #FFD700; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">Theological Meaning:</strong><br>${currentQ.explanation.Theological_Meaning}</div>`;
+                }
+                if (currentQ.explanation.Christ_Centered_Meaning) {
+                    explanationHTML += `<div style="margin-bottom: 1rem;"><strong style="color: #FFD700; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">Christ-Centered Meaning:</strong><br>${currentQ.explanation.Christ_Centered_Meaning}</div>`;
+                }
+            } else {
+                // Fallback for old string format
+                explanationHTML += currentQ.explanation;
+            }
+            
+            explanationDiv.innerHTML = explanationHTML;
             explanationDiv.style.display = 'block';
         }
         // Hide deep insight by default
         deepInsightDiv.style.display = 'none';
         // Hide next button by default
         nextBtn.style.display = 'none';
-        // If there is a deep insight, show it after explanation, else show next button as usual
+        // If there is a deep insight, show it after explanation, else auto-advance
         if (currentQ.deepInsight) {
             setTimeout(() => {
                 explanationDiv.style.display = 'none';
-                deepInsightContent.innerText = '🔎 ' + currentQ.deepInsight;
+                deepInsightContent.innerHTML = `<span style="color: #8B0000; font-weight: bold;">🔎 Deep Insight:</span> ${currentQ.deepInsight}`;
                 deepInsightDiv.style.display = 'block';
-            }, 1200); // Show deep insight after a short delay
+            }, 800); // Show deep insight after a shorter delay
         } else {
+            // Show next button for manual advancement
             nextBtn.style.display = 'block';
         }
 
@@ -1460,7 +1967,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Start the next team turn (Black Team) ---
     function startNextTeamTurn() {
         console.log('startNextTeamTurn called');
-        console.log('Blue team questions available for exclusion:', blueTeamQuestions.length);
         
         // Prepare the game for the Black team
         timeAttackTeamTurn = 'black';
@@ -1469,7 +1975,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentStreak = 0;
         // Don't reset teamBlackScore, let it accumulate from 0
 
-        // Get a fresh set of questions for the Black team
+        // Get a completely fresh and randomized set of questions for the Black team
         const selectedCategory = categoryDropdown.value;
         console.log('Selected category:', selectedCategory);
         
@@ -1477,21 +1983,16 @@ document.addEventListener('DOMContentLoaded', () => {
             ? [...gameQuestions] 
             : gameQuestions.filter(q => q.category === selectedCategory);
         
-        console.log('Available questions before exclusion:', availableQuestions.length);
-        console.log('Questions to exclude (blue team):', blueTeamQuestions.map(q => q.id));
+        console.log('Available questions for black team:', availableQuestions.length);
         
-        // Exclude Blue Team's questions, lenient mode
-        questions = getAttackModeQuestions(availableQuestions, blueTeamQuestions, true);
+        // COMPLETELY RANDOMIZE - no exclusions, no ordering criteria
+        questions = shuffle(availableQuestions).slice(0, gameQuestionCount);
         
-        if (!questions) {
-            console.error('Could not start Black Team\'s turn due to lack of questions.');
-            alert("Could not start Black Team's turn due to lack of questions.");
-            slideOut(document.getElementById('intermission-screen'), () => slideIn(container));
-            return;
-        }
-        
-        console.log('Black team questions loaded:', questions.length, 'questions');
+        console.log('Black team questions loaded (completely randomized):', questions.length, 'questions');
         console.log('Black team question IDs:', questions.map(q => q.id));
+        
+        // Verify that questions are truly randomized for black team
+        verifyQuestionRandomization(questions, selectedCategory);
         
         // Transition back to the game screen and start the new round
         slideOut(document.getElementById('intermission-screen'), () => {
@@ -1527,23 +2028,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function startTimer() {
         timeLeft = TIME_LIMIT;
         updateTimerDisplay(timeLeft); // Use the new function
-        const progressBar = document.getElementById('progress-bar');
-        progressBar.style.width = '0%';
-        progressBar.classList.remove('light-up');
         startTicking(); // Start ticking for the whole timer
         timer = setInterval(() => {
             timeLeft--;
             updateTimerDisplay(timeLeft); // Use the new function
-            // Progress bar update
-            const percent = ((TIME_LIMIT - timeLeft) / TIME_LIMIT) * 100;
-            progressBar.style.width = percent + '%';
-            if (timeLeft <= 5) {
-                progressBar.classList.add('light-up');
-                progressBar.classList.add('progress-pulse');
-            } else {
-                progressBar.classList.remove('light-up');
-                progressBar.classList.remove('progress-pulse');
-            }
             // Show countdown numbers for last 3 seconds
             if (timeLeft <= 3 && timeLeft > 0) {
                 showCountdownNumber(timeLeft);
@@ -1557,23 +2045,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- NEW: Global Timer Functions for Time Attack ---
     function startGlobalTimer() {
-        globalTimeLeft = TOTAL_TIME_LIMIT;
-        timerDiv.innerText = `Time: ${formatTime(globalTimeLeft)}`;
-        timerDiv.parentElement.classList.add('global-timer');
-
-        globalTimer = setInterval(() => {
-            globalTimeLeft--;
-            timerDiv.innerText = `Time: ${formatTime(globalTimeLeft)}`;
-            if (globalTimeLeft <= 0) {
-                handleGlobalTimeUp();
-            }
-        }, 1000);
-    }
+    globalTimeLeft = TOTAL_TIME_LIMIT;
+    timerDiv.innerText = formatTime(globalTimeLeft);
+    timerDiv.parentElement.parentElement.classList.add('global-timer');
+    
+    globalTimer = setInterval(() => {
+        globalTimeLeft--;
+        timerDiv.innerText = formatTime(globalTimeLeft);
+        if (globalTimeLeft <= 0) {
+            handleGlobalTimeUp();
+        }
+    }, 1000);
+}
 
     function stopGlobalTimer() {
-        clearInterval(globalTimer);
-        timerDiv.parentElement.classList.remove('global-timer');
-    }
+    clearInterval(globalTimer);
+    timerDiv.parentElement.parentElement.classList.remove('global-timer');
+}
 
     function handleGlobalTimeUp() {
         stopGlobalTimer();
@@ -1730,6 +2218,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const avgTime = answerTimes.length ? (answerTimes.reduce((a, b) => a + b, 0) / answerTimes.length) : 0;
                 const correctPct = Math.round((correctAnswers / questions.length) * 100);
                 
+                // Merge current game stats with achievement tracking stats
                 const stats = {
                     completed: true,
                     correctAnswers,
@@ -1740,7 +2229,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     powerUpsUsed,
                     faithTokens,
                     comeback: hadComebackStreak,
+                    // Add achievement tracking stats
+                    prophecyStreak: currentGameStats.prophecyStreak,
+                    healthStreak: currentGameStats.healthStreak,
+                    bibleStreak: currentGameStats.bibleStreak,
+                    fastAnswers: currentGameStats.fastAnswers,
+                    highWagers: currentGameStats.highWagers,
+                    lightningRound: currentGameStats.lightningRound,
                 };
+                
+                // Check and award achievements
+                const newAchievements = checkAchievements(stats);
                 
                 // Enhanced celebration based on performance
                 if (correctPct >= 95) {
@@ -2130,6 +2629,86 @@ document.addEventListener('DOMContentLoaded', () => {
     teamsBtn.onclick = () => {
         checkSignInAndStartGame('teams');
     };
+    
+    // Exit button event handler - set up once and reuse
+    if (!exitBtn) {
+        console.error('Exit button element not found!');
+        return;
+    }
+    
+    exitBtn.onclick = () => {
+        // Optional confirmation for mid-game exits
+        if (gameDiv.style.display !== 'none' && currentQuestionIndex > 0 && !confirm('Are you sure you want to exit? Progress will be lost.')) {
+            return;
+        }
+
+        // Clean up all timers and audio
+        clearInterval(timer);
+        stopTicking();
+        if (isTimeAttackMode) {
+            stopGlobalTimer();
+        }
+
+        // Reset all game state and UI
+        resetState();
+
+        // Hide overlays if present
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
+        if (feedbackOverlay) feedbackOverlay.style.display = 'none';
+
+        // Determine current screen and slide out appropriately
+        const currentScreen = gameOverDiv.style.display !== 'none' ? gameOverDiv : gameDiv;
+        slideOut(currentScreen, () => {
+            slideIn(container);
+        });
+
+        // Hide both game screens and remove active classes
+        gameDiv.style.display = 'none';
+        gameOverDiv.style.display = 'none';
+        gameDiv.classList.remove('active');
+        gameOverDiv.classList.remove('active');
+
+        // Hide exit button
+        exitBtn.style.display = 'none';
+
+        // Stop music
+        pauseBgMusic();
+
+        // Reset game state to prevent memory leaks
+        questions = [];
+        currentQuestionIndex = 0;
+        playerScore = 0;
+        currentStreak = 0;
+        longestStreak = 0;
+        correctAnswers = 0;
+        teamBlueScore = 0;
+        teamBlackScore = 0;
+        faithTokens = 0;
+        powerUpsUsed = 0;
+        wrongStreak = 0;
+        hadComebackStreak = false;
+        answerTimes = [];
+        gameStartTime = null;
+        gameElapsedTime = 0;
+        gameQuestionCount = 0;
+        doublePointsActive = false;
+        freezeTimeActive = false;
+        timeRanOut = false;
+        timeAttackTeamTurn = 'blue';
+        timeAttackBlueTeamFinalScore = 0;
+        blueTeamQuestions = [];
+
+        // Hide encouragement message if present
+        const encouragementDiv = document.getElementById('encouragement-message');
+        if (encouragementDiv) encouragementDiv.innerText = '';
+        
+        // Show a new fun fact on the start screen when returning
+        const funFactBox = document.getElementById('fun-fact-box');
+        if (funFactBox) {
+            funFactBox.innerText = getRandomFunFact();
+        }
+    };
     nextBtn.onclick = () => {
         // Hide explanation first if it's visible
         if (explanationDiv.style.display === 'block') {
@@ -2156,11 +2735,63 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     };
+    
+    showOptionsBtn.onclick = () => {
+        // Transition from question-only to options-with-timer phase
+        showOptionsWithTimer();
+    };
+    
+    // Skip button removed - manual advancement only
     playAgainBtn.onclick = () => {
         if (gameMode === 'solo') checkSignInAndStartGame('solo');
         else checkSignInAndStartGame('teams');
     };
-    downloadBtn.onclick = downloadAnswers;
+    downloadBtn.onclick = () => {
+        // Create a text file with the game results
+        let content = 'End of Time - Game Results\n';
+        content += '================================\n\n';
+        
+        if (gameMode === 'solo') {
+            content += `Game Mode: Solo Player\n`;
+            content += `Final Score: ${playerScore}\n`;
+            content += `Correct Answers: ${correctAnswers}/${questions.length}\n`;
+            content += `Longest Streak: ${longestStreak}\n`;
+            if (gameElapsedTime > 0) {
+                content += `Total Time: ${formatTime(gameElapsedTime)}\n`;
+            }
+        } else {
+            content += `Game Mode: Two Teams\n`;
+            content += `Blue Team Score: ${teamBlueScore}\n`;
+            content += `Black Team Score: ${teamBlackScore}\n`;
+            if (gameElapsedTime > 0) {
+                content += `Total Time: ${formatTime(gameElapsedTime)}\n`;
+            }
+        }
+        
+        content += `\nQuestions and Answers:\n`;
+        content += `====================\n\n`;
+        
+        questions.forEach((q, index) => {
+            content += `${index + 1}. ${q.question}\n`;
+            content += `   Category: ${q.category}\n`;
+            content += `   Correct Answer: ${q.correctAnswer}\n`;
+            if (q.explanation) {
+                content += `   Explanation: ${q.explanation}\n`;
+            }
+            content += `\n`;
+        });
+        
+        // Create and download the file
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `end-of-time-results-${new Date().toISOString().slice(0, 10)}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
     const startNextTurnBtn = document.getElementById('start-next-turn-btn');
     if(startNextTurnBtn) {
         console.log('Attaching event listener to Start Your Turn button');
@@ -2190,18 +2821,30 @@ if (contrastToggle) {
 
 // --- Timer pulse for low time ---
 function updateTimerDisplay(timeLeft) {
-    timerDiv.innerText = `Time: ${timeLeft}`;
+    // Format time as two digits (e.g., "08" instead of "8")
+    const formattedTime = timeLeft.toString().padStart(2, '0');
+    timerDiv.innerText = formattedTime;
+    
+    // Add low-time class for urgent styling
     if (timeLeft <= 3) {
         timerDiv.classList.add('low-time');
+        timerDiv.parentElement.parentElement.classList.add('urgent');
     } else {
         timerDiv.classList.remove('low-time');
+        timerDiv.parentElement.parentElement.classList.remove('urgent');
     }
 }
 
 // --- Service Worker Registration ---
-if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('service-worker.js');
+    navigator.serviceWorker.register('service-worker.js')
+      .then(registration => {
+        console.log('ServiceWorker registration successful');
+      })
+      .catch(error => {
+        console.log('ServiceWorker registration failed:', error);
+      });
   });
 }
 
@@ -2250,12 +2893,11 @@ if (document.readyState === 'loading') {
 } else {
     attachRippleToButtons();
 }
-// Patch showQuestion to call attachRippleToButtons and updateProgressBar
+// Patch showQuestion to call attachRippleToButtons
 const origShowQuestion = window.showQuestion;
 window.showQuestion = function() {
     origShowQuestion.apply(this, arguments);
     attachRippleToButtons();
-    updateProgressBar();
     setNextButtonGlow(false);
 };
 // Patch answer selection to pop/bounce and enable Next button glow
@@ -2308,42 +2950,7 @@ function setCategoryBackground(category) {
         video.loop = true;
     }
 }
-// --- Simple animated particles for background canvas ---
-function startParticles() {
-    const canvas = document.getElementById('background-canvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    let w = window.innerWidth, h = window.innerHeight;
-    canvas.width = w; canvas.height = h;
-    let particles = Array.from({length: 24}, () => ({
-        x: Math.random()*w, y: Math.random()*h,
-        r: Math.random()*2+1, dx: (Math.random()-0.5)*0.5, dy: (Math.random()-0.5)*0.5,
-        color: `hsla(${Math.random()*360},80%,70%,0.7)`
-    }));
-    function animate() {
-        ctx.clearRect(0,0,w,h);
-        for (let p of particles) {
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.r, 0, 2*Math.PI);
-            ctx.fillStyle = p.color;
-            ctx.fill();
-            p.x += p.dx; p.y += p.dy;
-            if (p.x<0||p.x>w) p.dx*=-1;
-            if (p.y<0||p.y>h) p.dy*=-1;
-        }
-        requestAnimationFrame(animate);
-    }
-    animate();
-    window.addEventListener('resize', () => {
-        w = window.innerWidth; h = window.innerHeight;
-        canvas.width = w; canvas.height = h;
-    });
-}
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', startParticles);
-} else {
-    startParticles();
-}
+// Removed particle animation function
 // --- Patch showQuestion to set category background ---
 const origShowQuestion2 = window.showQuestion;
 window.showQuestion = function() {
@@ -2351,46 +2958,7 @@ window.showQuestion = function() {
     const q = questions[currentQuestionIndex];
     setCategoryBackground(q && q.category);
 };
-// --- Simple animated VHS grain effect for background canvas ---
-function startVHSGrain() {
-    const canvas = document.getElementById('background-canvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    let w = window.innerWidth, h = window.innerHeight;
-    canvas.width = w; canvas.height = h;
-    function drawGrain() {
-        const imageData = ctx.createImageData(w, h);
-        for (let i = 0; i < imageData.data.length; i += 4) {
-            const shade = 16 + Math.floor(Math.random() * 32); // subtle grain
-            imageData.data[i] = shade;
-            imageData.data[i+1] = shade;
-            imageData.data[i+2] = shade;
-            imageData.data[i+3] = 18 + Math.floor(Math.random() * 22); // low alpha
-        }
-        ctx.putImageData(imageData, 0, 0);
-        // Add scanlines
-        ctx.save();
-        ctx.globalAlpha = 0.08;
-        ctx.fillStyle = '#fff';
-        for (let y = 0; y < h; y += 3) {
-            ctx.fillRect(0, y, w, 1);
-        }
-        ctx.restore();
-        // Add subtle flicker
-        canvas.style.opacity = 0.7 + Math.random() * 0.08;
-        requestAnimationFrame(drawGrain);
-    }
-    drawGrain();
-    window.addEventListener('resize', () => {
-        w = window.innerWidth; h = window.innerHeight;
-        canvas.width = w; canvas.height = h;
-    });
-}
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', startVHSGrain);
-} else {
-    startVHSGrain();
-}
+// Removed VHS grain animation function
 
 // --- Glitchy Transition Overlay ---
 function showGlitchTransition(isProphecy, cb) {
@@ -2435,9 +3003,15 @@ explanationDiv.style.textAlign = 'left';
 explanationDiv.style.display = 'none';
 
 // Register service worker for PWA/offline support
-if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('service-worker.js');
+    navigator.serviceWorker.register('service-worker.js')
+      .then(registration => {
+        console.log('ServiceWorker registration successful');
+      })
+      .catch(error => {
+        console.log('ServiceWorker registration failed:', error);
+      });
   });
 }
 
@@ -2473,28 +3047,19 @@ let bgVideoIndices = {
     prophecy: 0,
     normal: 0
 };
-const prophecyBackgrounds = ['background 2.mp4', 'background 3.mp4', 'background 7.mp4'];
-const normalBackgrounds = ['background 5.mp4', 'background 6.mp4'];
+const prophecyBackgrounds = [];
+const normalBackgrounds = [];
 
 function setBackgroundVideoForQuestion(isProphecy) {
     const bgVideo = document.getElementById('background-video');
     if (!bgVideo) return;
-    if (isProphecy) {
-        const selectedBg = prophecyBackgrounds[bgVideoIndices.prophecy];
-        if (!bgVideo.src.endsWith(selectedBg)) {
-            bgVideo.src = selectedBg;
-            bgVideo.load();
-            bgVideo.play().catch(()=>{});
-        }
-        bgVideoIndices.prophecy = (bgVideoIndices.prophecy + 1) % prophecyBackgrounds.length;
-    } else {
-        const selectedBg = normalBackgrounds[bgVideoIndices.normal];
-        if (!bgVideo.src.endsWith(selectedBg)) {
-            bgVideo.src = selectedBg;
-            bgVideo.load();
-            bgVideo.play().catch(()=>{});
-        }
-        bgVideoIndices.normal = (bgVideoIndices.normal + 1) % normalBackgrounds.length;
+    
+    // Use background 2 for prophecy questions, background 1 for others
+    const backgroundFile = isProphecy ? 'background 2.mp4' : 'background 1.mp4';
+    if (!bgVideo.src.endsWith(backgroundFile)) {
+        bgVideo.src = backgroundFile;
+        bgVideo.load();
+        bgVideo.play().catch(()=>{});
     }
 }
 
@@ -2511,22 +3076,33 @@ if (deepInsightNextBtn) {
 }
 
 // --- Firebase Config & Auth ---
-// Firebase project: "Pillars Of Faith" (pillars-of-faith)
+// Firebase project: "End of Time" (end-of-time)
 // Project number: 361998196975
 // TODO: You need to create a Web App in your Firebase project to get the API key and other credentials
 // Go to https://console.firebase.google.com/ → Your Project → Project Settings → General → Your Apps → Add Web App
 const firebaseConfig = {
   apiKey: "AIzaSyAKExnN5p_QiS7iX-2x4S8Ttf7cPQ_U72E",
-  authDomain: "pillars-of-faith.firebaseapp.com",
-  projectId: "pillars-of-faith",
-  storageBucket: "pillars-of-faith.appspot.com",
+  authDomain: "end-of-time.firebaseapp.com",
+  projectId: "end-of-time",
+  storageBucket: "end-of-time.appspot.com",
   messagingSenderId: "361998196975",
   appId: "1:361998196975:web:a2c3dabc5c8a760868bb1a",
   measurementId: "G-53MF5JWV2V"
 };
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-let currentUser = null;
+// Only initialize Firebase if not running locally
+let auth, currentUser = null;
+if (window.location.protocol !== 'file:') {
+    firebase.initializeApp(firebaseConfig);
+    auth = firebase.auth();
+} else {
+    console.log('⚠️ Running locally - Firebase features disabled');
+    // Create dummy auth object for local testing
+    auth = {
+        onAuthStateChanged: (callback) => callback(null),
+        signInWithPopup: () => Promise.reject(new Error('Firebase disabled locally')),
+        signOut: () => Promise.resolve()
+    };
+}
 
 // --- Leaderboard Modal Logic ---
 const leaderboardModal = document.getElementById('leaderboard-modal');
@@ -2712,7 +3288,25 @@ auth.onAuthStateChanged(user => {
 });
 
 // --- Firestore Leaderboard Integration ---
-const db = firebase.firestore();
+let db;
+if (window.location.protocol !== 'file:') {
+    db = firebase.firestore();
+} else {
+    // Create dummy db object for local testing
+    db = {
+        collection: () => ({
+            doc: () => ({
+                set: () => Promise.resolve(),
+                get: () => Promise.resolve({ data: () => null })
+            }),
+            orderBy: () => ({
+                limit: () => ({
+                    get: () => Promise.resolve({ forEach: () => {}, size: 0, empty: true })
+                })
+            })
+        })
+    };
+}
 const leaderboardTableBody = document.querySelector('#leaderboard-table tbody');
 
 // Helper: format time (seconds) as mm:ss
@@ -2958,6 +3552,11 @@ function testFirebaseConnection() {
   });
   
   // Test Firestore connection
+  if (window.location.protocol === 'file:') {
+    console.log('⚠️ Running locally - Firebase features will be limited');
+    return;
+  }
+  
   db.collection('test').doc('test').get()
     .then(() => {
       console.log('✅ Firestore connection successful!');
@@ -2966,6 +3565,8 @@ function testFirebaseConnection() {
       console.error('❌ Firestore connection failed:', error);
       if (error.code === 'permission-denied') {
         console.log('💡 This might be due to Firestore security rules. Check the FIREBASE_SETUP.md file.');
+      } else if (error.code === 'unavailable') {
+        console.log('💡 Firebase service unavailable. Check your internet connection.');
       }
     });
     
