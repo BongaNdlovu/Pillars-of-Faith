@@ -1,13 +1,13 @@
-# Firebase Setup Guide for Pillars of Faith Leaderboard
+# Firebase Setup Guide for End of Time Leaderboard
 
 ## Overview
-This guide will help you set up Firebase for the global leaderboard feature in your Pillars of Faith trivia game.
+This guide will help you set up Firebase for the global leaderboard feature in your End of Time trivia game.
 
 ## Step 1: Create Firebase Project
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
 2. Click "Create a project" or "Add project"
-3. Enter project name: `pillars-of-faith` (or your preferred name)
+3. Enter project name: `end-of-time` (or your preferred name)
 4. Follow the setup wizard (you can disable Google Analytics if you don't need it)
 
 ## Step 2: Enable Authentication
@@ -34,7 +34,7 @@ This guide will help you set up Firebase for the global leaderboard feature in y
 1. In your Firebase project, go to **Project Settings** (gear icon)
 2. Scroll down to **Your apps** section
 3. Click **Add app** → **Web** (</>)
-4. Register your app with a nickname (e.g., "Pillars of Faith Web")
+4. Register your app with a nickname (e.g., "End of Time Web")
 5. Copy the configuration object that looks like this:
 
 ```javascript

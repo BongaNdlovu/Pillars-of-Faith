@@ -1,10 +1,10 @@
 {
-  "name": "pillars-of-faith",
+  "name": "end-of-time",
   "version": "1.0.0",
   "description": "A trivia game with a global leaderboard, deployed as a static web app.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/BongaNdlovu/Pillars-of-Faith"
+    "url": "https://github.com/BongaNdlovu/End-of-Time"
   },
   "author": "Bonga Ndlovu",
   "license": "MIT",
@@ -24,6 +24,6 @@
     "firebase",
     "leaderboard",
     "static",
-    "pillars-of-faith"
+    "end-of-time"
   ]
 } 
