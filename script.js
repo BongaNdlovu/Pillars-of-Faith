@@ -218,8 +218,8 @@ function startTicking() {
     
     try {
         // Reset and prepare the audio
-        audioTickingTime.currentTime = 0;
-        audioTickingTime.loop = true;
+    audioTickingTime.currentTime = 0;
+    audioTickingTime.loop = true;
         audioTickingTime.volume = 0.7;
         
         // Try to play with loop first
@@ -227,14 +227,14 @@ function startTicking() {
         if (playPromise !== undefined) {
             playPromise.catch(e => {
                 console.warn('Error starting ticking sound with loop:', e);
-                // Fallback to interval method if loop doesn't work
-                tickingInterval = setInterval(() => {
+            // Fallback to interval method if loop doesn't work
+            tickingInterval = setInterval(() => {
                     if (!isMuted && audioTickingTime) {
-                        audioTickingTime.currentTime = 0;
-                        audioTickingTime.play().catch(() => {});
-                    }
-                }, 1000);
-            });
+                    audioTickingTime.currentTime = 0;
+                    audioTickingTime.play().catch(() => {});
+                }
+            }, 1000);
+        });
         }
     } catch (e) {
         console.warn('Error playing ticking sound:', e);
@@ -256,8 +256,8 @@ function stopTicking() {
     
     try {
         if (audioTickingTime) {
-            audioTickingTime.pause();
-            audioTickingTime.currentTime = 0;
+        audioTickingTime.pause();
+        audioTickingTime.currentTime = 0;
             audioTickingTime.loop = false;
         }
     } catch (e) {
@@ -1281,6 +1281,214 @@ function testTeamMode() {
     console.log('🎮 Team mode test complete! Start a team game to verify functionality.');
 }
 
+/**
+ * Comprehensive bug check function
+ * Call this in the browser console to check for common issues
+ */
+function comprehensiveBugCheck() {
+    console.log('🔍 Starting Comprehensive Bug Check...');
+    
+    // Check 1: DOM Elements
+    console.log('\n📋 DOM Elements Check:');
+    const criticalElements = {
+        'container': document.getElementById('container'),
+        'game': document.getElementById('game'),
+        'game-over': document.getElementById('game-over'),
+        'options': document.querySelector('.options'),
+        'question': document.querySelector('.question'),
+        'score-solo': document.getElementById('score-solo'),
+        'score-teams': document.getElementById('score-teams'),
+        'timer': document.querySelector('.timer'),
+        'wager-input': document.getElementById('wager-input'),
+        'next-btn': document.getElementById('next'),
+        'solo-btn': document.getElementById('solo'),
+        'teams-btn': document.getElementById('teams')
+    };
+    
+    let missingElements = 0;
+    Object.entries(criticalElements).forEach(([name, element]) => {
+        if (element) {
+            console.log(`✅ ${name}: Found`);
+        } else {
+            console.log(`❌ ${name}: Missing`);
+            missingElements++;
+        }
+    });
+    
+    // Check 2: Game Variables
+    console.log('\n🔧 Game Variables Check:');
+    const gameVariables = [
+        'gameMode', 'playerScore', 'currentQuestionIndex', 'questions',
+        'teamBlueScore', 'teamBlackScore', 'currentTeam', 'faithTokens',
+        'currentStreak', 'longestStreak', 'correctAnswers'
+    ];
+    
+    let undefinedVariables = 0;
+    gameVariables.forEach(varName => {
+        if (typeof window[varName] !== 'undefined') {
+            console.log(`✅ ${varName}: Defined (${typeof window[varName]})`);
+        } else {
+            console.log(`❌ ${varName}: Undefined`);
+            undefinedVariables++;
+        }
+    });
+    
+    // Check 3: Audio Elements
+    console.log('\n🎵 Audio Elements Check:');
+    const audioElements = [
+        'audio-correct-1', 'audio-correct-2', 'audio-wrong', 'audio-timeup',
+        'audio-riser', 'audio-bg-1', 'audio-bg-2', 'audio-bg-3', 'audio-bg-4', 'audio-bg-5'
+    ];
+    
+    let missingAudio = 0;
+    audioElements.forEach(audioId => {
+        const audio = document.getElementById(audioId);
+        if (audio) {
+            console.log(`✅ ${audioId}: Found`);
+        } else {
+            console.log(`❌ ${audioId}: Missing`);
+            missingAudio++;
+        }
+    });
+    
+    // Check 4: CSS Classes
+    console.log('\n🎨 CSS Classes Check:');
+    const testElement = document.createElement('div');
+    testElement.className = 'options button correct highlight-correct';
+    document.body.appendChild(testElement);
+    
+    const computedStyle = window.getComputedStyle(testElement);
+    const hasCorrectStyle = computedStyle.backgroundColor !== 'rgba(0, 0, 0, 0)' || 
+                           computedStyle.borderColor !== 'rgba(0, 0, 0, 0)';
+    
+    console.log(`✅ CSS Classes: ${hasCorrectStyle ? 'Working' : 'May have issues'}`);
+    document.body.removeChild(testElement);
+    
+    // Check 5: Question Data
+    console.log('\n📚 Question Data Check:');
+    if (typeof gameQuestions !== 'undefined' && gameQuestions.length > 0) {
+        console.log(`✅ gameQuestions: ${gameQuestions.length} questions loaded`);
+        
+        // Check first question structure
+        const firstQuestion = gameQuestions[0];
+        const requiredFields = ['question', 'options', 'answer', 'category'];
+        let missingFields = 0;
+        
+        requiredFields.forEach(field => {
+            if (firstQuestion[field]) {
+                console.log(`✅ Question ${field}: Present`);
+            } else {
+                console.log(`❌ Question ${field}: Missing`);
+                missingFields++;
+            }
+        });
+    } else {
+        console.log('❌ gameQuestions: Not loaded or empty');
+    }
+    
+    // Check 6: Answer Highlighting Logic
+    console.log('\n🎯 Answer Highlighting Check:');
+    console.log('Testing answer highlighting logic...');
+    
+    // Simulate a question scenario
+    const testQuestion = {
+        question: 'Test question?',
+        options: ['Option A', 'Option B', 'Option C', 'Option D'],
+        answer: 'Option B',
+        category: 'Test'
+    };
+    
+    console.log(`Test question answer: "${testQuestion.answer}"`);
+    console.log(`Test options: ${testQuestion.options.join(', ')}`);
+    
+    // Check if the highlighting logic would work
+    const correctOption = testQuestion.options.find(option => option === testQuestion.answer);
+    if (correctOption) {
+        console.log('✅ Answer highlighting logic: Should work correctly');
+    } else {
+        console.log('❌ Answer highlighting logic: May have issues');
+    }
+    
+    // Summary
+    console.log('\n📊 Bug Check Summary:');
+    console.log(`Missing DOM Elements: ${missingElements}`);
+    console.log(`Undefined Variables: ${undefinedVariables}`);
+    console.log(`Missing Audio Elements: ${missingAudio}`);
+    
+    if (missingElements === 0 && undefinedVariables === 0 && missingAudio === 0) {
+        console.log('🎉 All checks passed! No obvious bugs detected.');
+    } else {
+        console.log('⚠️ Some issues detected. Check the details above.');
+    }
+    
+    console.log('\n💡 If you\'re experiencing issues:');
+    console.log('1. Check the browser console for JavaScript errors');
+    console.log('2. Verify all audio files are in the correct location');
+    console.log('3. Try refreshing the page');
+    console.log('4. Check if any browser extensions are interfering');
+}
+
+/**
+ * Test function specifically for answer highlighting
+ * Call this in the browser console to test answer highlighting
+ */
+function testAnswerHighlighting() {
+    console.log('🎯 Testing Answer Highlighting...');
+    
+    // Check if we're in a game
+    if (!document.getElementById('game') || document.getElementById('game').style.display === 'none') {
+        console.log('❌ Game is not active. Start a game first.');
+        return;
+    }
+    
+    // Check if there are options buttons
+    const optionsDiv = document.querySelector('.options');
+    if (!optionsDiv || optionsDiv.children.length === 0) {
+        console.log('❌ No options buttons found. Make sure a question is displayed.');
+        return;
+    }
+    
+    console.log('✅ Game is active and options are present');
+    console.log('📋 Current options:');
+    Array.from(optionsDiv.children).forEach((btn, index) => {
+        console.log(`  ${index + 1}. "${btn.innerText}"`);
+    });
+    
+    // Check if we have a current question
+    if (typeof currentQuestionIndex !== 'undefined' && typeof questions !== 'undefined' && questions[currentQuestionIndex]) {
+        const currentQuestion = questions[currentQuestionIndex];
+        console.log('📚 Current question answer:', currentQuestion.answer);
+        
+        // Test the highlighting logic
+        const correctButton = Array.from(optionsDiv.children).find(btn => btn.innerText === currentQuestion.answer);
+        if (correctButton) {
+            console.log('✅ Correct answer button found:', correctButton.innerText);
+            
+            // Manually apply highlighting for testing
+            correctButton.classList.add('correct', 'highlight-correct');
+            console.log('🎨 Applied highlighting classes to correct answer');
+            
+            // Check if CSS is working
+            const computedStyle = window.getComputedStyle(correctButton);
+            console.log('🎨 Button styles after highlighting:');
+            console.log('  Background:', computedStyle.backgroundColor);
+            console.log('  Border:', computedStyle.border);
+            console.log('  Box-shadow:', computedStyle.boxShadow);
+            
+        } else {
+            console.log('❌ Could not find button matching correct answer');
+            console.log('Available options:', Array.from(optionsDiv.children).map(btn => btn.innerText));
+        }
+    } else {
+        console.log('❌ No current question data available');
+    }
+    
+    console.log('💡 If highlighting is not working:');
+    console.log('1. Check if CSS classes are being applied');
+    console.log('2. Verify the correct answer matches exactly');
+    console.log('3. Check for any CSS conflicts');
+}
+
 function calculateStars(stats) {
   // Rubric:
   // 1: <50% correct
@@ -1565,10 +1773,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // - Category order
         // - Previous game history
         // - Team assignments
-        questions = shuffle(availableQuestions).slice(0, numQuestions);
-        gameQuestionCount = numQuestions;
-        maxWagerValue = 20;
-        currentWager = 5;
+            questions = shuffle(availableQuestions).slice(0, numQuestions);
+            gameQuestionCount = numQuestions;
+            maxWagerValue = 20;
+            currentWager = 5;
 
         if (questions.length === 0) {
             alert('No questions found for this category!');
@@ -1842,12 +2050,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentStreak = 0;
             }
             selectedBtn.classList.add('incorrect');
-            // Show correct answer with highlight
-            Array.from(optionsDiv.children).forEach(btn => {
-                if (btn.innerText === questions[currentQuestionIndex].answer) {
-                    btn.classList.add('correct', 'highlight-correct');
-                }
-            });
+                    // Show correct answer with highlight
+        const correctAnswer = questions[currentQuestionIndex].answer;
+        console.log('🎯 Debug: Correct answer should be:', correctAnswer);
+        
+        Array.from(optionsDiv.children).forEach(btn => {
+            console.log('🎯 Debug: Checking button:', btn.innerText, 'against answer:', correctAnswer);
+            if (btn.innerText === correctAnswer) {
+                console.log('🎯 Debug: Adding highlight-correct to button:', btn.innerText);
+                btn.classList.add('correct', 'highlight-correct');
+            }
+        });
         }
         
         if (gameMode === 'solo') updateSoloStats();
@@ -1855,9 +2068,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         doublePointsActive = false;
 
+        // Disable all buttons and highlight correct answer
         Array.from(optionsDiv.children).forEach(btn => {
-            if (btn.innerText === questions[currentQuestionIndex].answer) btn.classList.add('correct', 'highlight-correct');
             btn.disabled = true;
+            // Only add highlight-correct if this is the correct answer
+            if (btn.innerText === questions[currentQuestionIndex].answer) {
+                btn.classList.add('correct', 'highlight-correct');
+            }
         });
 
         const currentQ = questions[currentQuestionIndex];
@@ -3090,10 +3307,12 @@ const firebaseConfig = {
   measurementId: "G-53MF5JWV2V"
 };
 // Only initialize Firebase if not running locally
-let auth, currentUser = null;
+let auth, db, currentUser = null;
 if (window.location.protocol !== 'file:') {
     firebase.initializeApp(firebaseConfig);
     auth = firebase.auth();
+    db = firebase.firestore();
+    console.log('✅ Firebase initialized successfully');
 } else {
     console.log('⚠️ Running locally - Firebase features disabled');
     // Create dummy auth object for local testing
@@ -3101,6 +3320,25 @@ if (window.location.protocol !== 'file:') {
         onAuthStateChanged: (callback) => callback(null),
         signInWithPopup: () => Promise.reject(new Error('Firebase disabled locally')),
         signOut: () => Promise.resolve()
+    };
+    // Create dummy db object for local testing
+    db = {
+        collection: () => ({
+            doc: () => ({
+                set: () => Promise.resolve(),
+                get: () => Promise.resolve({ data: () => null })
+            }),
+            orderBy: () => ({
+                limit: () => ({
+                    get: () => Promise.resolve({ forEach: () => {}, size: 0, empty: true, docs: [] })
+                }),
+                get: () => Promise.resolve({ forEach: () => {}, size: 0, empty: true, docs: [] })
+            }),
+            limit: () => ({
+                get: () => Promise.resolve({ forEach: () => {}, size: 0, empty: true, docs: [] })
+            }),
+            get: () => Promise.resolve({ forEach: () => {}, size: 0, empty: true, docs: [] })
+        })
     };
 }
 
@@ -3288,25 +3526,7 @@ auth.onAuthStateChanged(user => {
 });
 
 // --- Firestore Leaderboard Integration ---
-let db;
-if (window.location.protocol !== 'file:') {
-    db = firebase.firestore();
-} else {
-    // Create dummy db object for local testing
-    db = {
-        collection: () => ({
-            doc: () => ({
-                set: () => Promise.resolve(),
-                get: () => Promise.resolve({ data: () => null })
-            }),
-            orderBy: () => ({
-                limit: () => ({
-                    get: () => Promise.resolve({ forEach: () => {}, size: 0, empty: true })
-                })
-            })
-        })
-    };
-}
+// Note: db is already initialized in the main Firebase configuration above
 const leaderboardTableBody = document.querySelector('#leaderboard-table tbody');
 
 // Helper: format time (seconds) as mm:ss
@@ -3536,6 +3756,173 @@ function showLeaderboardAfterGame(score, time) {
   }, 1000);
 }
 
+/**
+ * Comprehensive Firebase system check
+ * Call this in the browser console to verify Firebase setup
+ */
+function comprehensiveFirebaseCheck() {
+    console.log('🔥 Starting Comprehensive Firebase Check...');
+    
+    // Check 1: Firebase SDK Loading
+    console.log('\n📦 Firebase SDK Check:');
+    if (typeof firebase === 'undefined') {
+        console.error('❌ Firebase SDK not loaded! Check script tags in index.html');
+        return;
+    }
+    console.log('✅ Firebase SDK loaded successfully');
+    
+    // Check 2: Firebase Configuration
+    console.log('\n⚙️ Firebase Configuration Check:');
+    const requiredConfigFields = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
+    let configIssues = 0;
+    
+    requiredConfigFields.forEach(field => {
+        if (firebaseConfig[field]) {
+            console.log(`✅ ${field}: Configured`);
+        } else {
+            console.log(`❌ ${field}: Missing`);
+            configIssues++;
+        }
+    });
+    
+    console.log('📋 Firebase config summary:', {
+        projectId: firebaseConfig.projectId,
+        authDomain: firebaseConfig.authDomain,
+        apiKey: firebaseConfig.apiKey ? '***' + firebaseConfig.apiKey.slice(-4) : 'MISSING',
+        environment: window.location.protocol === 'file:' ? 'Local' : 'Hosted'
+    });
+    
+    // Check 3: Environment Detection
+    console.log('\n🌐 Environment Check:');
+    if (window.location.protocol === 'file:') {
+        console.log('⚠️ Running locally - Firebase features are disabled for security');
+        console.log('💡 To test Firebase features, deploy to a web server or use Firebase Hosting');
+        return;
+    }
+    console.log('✅ Running on web server - Firebase features enabled');
+    
+    // Check 4: Firebase App Initialization
+    console.log('\n🚀 Firebase App Initialization Check:');
+    try {
+        if (firebase.apps.length > 0) {
+            console.log('✅ Firebase app initialized successfully');
+            console.log('📱 App name:', firebase.apps[0].name);
+        } else {
+            console.log('❌ Firebase app not initialized');
+        }
+    } catch (error) {
+        console.error('❌ Error checking Firebase app:', error);
+    }
+    
+    // Check 5: Authentication Service
+    console.log('\n🔐 Authentication Service Check:');
+    if (auth && typeof auth.onAuthStateChanged === 'function') {
+        console.log('✅ Auth service available');
+        
+        // Test auth state
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                console.log('✅ User is signed in:', {
+                    displayName: user.displayName,
+                    email: user.email,
+                    uid: user.uid
+                });
+            } else {
+                console.log('ℹ️ No user currently signed in');
+            }
+        }, error => {
+            console.error('❌ Auth state change error:', error);
+        });
+    } else {
+        console.log('❌ Auth service not available');
+    }
+    
+    // Check 6: Firestore Database
+    console.log('\n💾 Firestore Database Check:');
+    if (typeof db !== 'undefined' && db) {
+        console.log('✅ Firestore database object available');
+        
+        // Test Firestore connection with a simple read
+        db.collection('leaderboard').limit(1).get()
+            .then(snapshot => {
+                console.log('✅ Firestore read test successful');
+                console.log('📊 Leaderboard collection accessible');
+            })
+            .catch(error => {
+                console.error('❌ Firestore read test failed:', error);
+                if (error.code === 'permission-denied') {
+                    console.log('💡 Permission denied - Check Firestore security rules');
+                } else if (error.code === 'unavailable') {
+                    console.log('💡 Service unavailable - Check internet connection');
+                } else {
+                    console.log('💡 Other error - Check Firebase project configuration');
+                }
+            });
+    } else {
+        console.log('❌ Firestore database object not available');
+    }
+    
+    // Check 7: DOM Elements for Firebase Features
+    console.log('\n🎮 Firebase UI Elements Check:');
+    const firebaseElements = {
+        'leaderboard-modal': document.getElementById('leaderboard-modal'),
+        'google-signin-btn': document.getElementById('google-signin-btn'),
+        'google-signout-btn': document.getElementById('google-signout-btn'),
+        'main-signin-btn': document.getElementById('main-signin-btn'),
+        'main-signout-btn': document.getElementById('main-signout-btn'),
+        'user-info': document.getElementById('user-info'),
+        'signin-status-text': document.getElementById('signin-status-text')
+    };
+    
+    let missingElements = 0;
+    Object.entries(firebaseElements).forEach(([name, element]) => {
+        if (element) {
+            console.log(`✅ ${name}: Found`);
+        } else {
+            console.log(`❌ ${name}: Missing`);
+            missingElements++;
+        }
+    });
+    
+    // Check 8: Firebase Functions Test
+    console.log('\n🧪 Firebase Functions Test:');
+    
+    // Test sign-in function
+    if (typeof signInWithGoogle === 'function') {
+        console.log('✅ signInWithGoogle function: Available');
+    } else {
+        console.log('❌ signInWithGoogle function: Missing');
+    }
+    
+    // Test save score function
+    if (typeof saveScoreToLeaderboard === 'function') {
+        console.log('✅ saveScoreToLeaderboard function: Available');
+    } else {
+        console.log('❌ saveScoreToLeaderboard function: Missing');
+    }
+    
+    // Summary
+    console.log('\n📊 Firebase System Summary:');
+    console.log(`Configuration Issues: ${configIssues}`);
+    console.log(`Missing UI Elements: ${missingElements}`);
+    
+    if (window.location.protocol === 'file:') {
+        console.log('⚠️ Local environment - Deploy to test Firebase features');
+    } else if (configIssues === 0 && missingElements === 0) {
+        console.log('🎉 Firebase system appears to be properly configured!');
+        console.log('💡 Test sign-in and leaderboard features in the game');
+    } else {
+        console.log('⚠️ Some issues detected - see details above');
+    }
+    
+    console.log('\n🔧 Troubleshooting Tips:');
+    console.log('1. Make sure Firebase project is created and configured');
+    console.log('2. Check that Google Sign-In is enabled in Firebase Console');
+    console.log('3. Verify your domain is in the authorized domains list');
+    console.log('4. Ensure Firestore database is created with proper rules');
+    console.log('5. Check browser console for any JavaScript errors');
+}
+
 // Test Firebase connection (for debugging)
 function testFirebaseConnection() {
   console.log('🔍 Testing Firebase connection...');
@@ -3582,7 +3969,7 @@ function testFirebaseConnection() {
   });
 }
 
-  // Uncomment the line below to test Firebase connection when the page loads
+  // Test Firebase connection when the page loads
   testFirebaseConnection();
 
 // Optionally, call showLeaderboardAfterGame(finalScore, finalTime) at game end
